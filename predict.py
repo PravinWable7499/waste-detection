@@ -7,8 +7,9 @@ import json
 import re
 
 # --- CONFIGURE API KEY ---
-GOOGLE_API_KEY = 'AIzaSyDTjKDxjZK02raiHrzYbAlGu1n1lM-ptag'  # API Key
-genai.configure(api_key=GOOGLE_API_KEY)
+GOOGLE_API_KEY = 'AIzaSyDTjKDxjZK02raiHrzYbAlGu1n1lM-ptag'  # Replace with your key
+genai.configure(api_key=GOOGLE_API_KEY) 
+
 
 # --- WASTE CATEGORIES & COLORS ---
 WASTE_CATEGORIES = [
@@ -81,6 +82,7 @@ No explanations, markdown, or extra text.
 """
 
 def get_image_dimensions(image_path):
+    """Get image width and height"""
     img = cv2.imread(image_path)
     if img is None:
         return None, None
@@ -88,6 +90,7 @@ def get_image_dimensions(image_path):
     return width, height
 
 def classify_objects(image_path):
+    """Detect and classify waste objects in image"""
     try:
         img_width, img_height = get_image_dimensions(image_path)
         if img_width is None:
@@ -188,6 +191,7 @@ def estimate_weight(category, area_cm2):
     return min(weight_kg, max_weight)
 
 def draw_annotations(image_path, results, output_path="annotated_result.jpg"):
+    """Draw bounding boxes and labels on image, save to output_path"""
     img_cv = cv2.imread(image_path)
     if img_cv is None:
         return None
@@ -237,7 +241,7 @@ def draw_annotations(image_path, results, output_path="annotated_result.jpg"):
     return output_path
 
 # test_prediction.py
-from prediction import classify_objects, estimate_weight
+from predict import classify_objects, estimate_weight
 
 def format_detection_results(results, image_path):
     """Format detection results for terminal output"""
@@ -304,7 +308,7 @@ def main():
         return
     
     # Draw annotations
-    from prediction import draw_annotations
+    from predict import draw_annotations
     output_path = draw_annotations(input_image, results, output_image)
     
     if output_path:

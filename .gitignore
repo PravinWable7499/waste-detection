@@ -1,0 +1,15 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# VS Code settings
+.vscode/
+
+# Uploads folder (if you don't want to upload user files)
+uploads/
+
+# Environment files (if you have API keys)
+.env

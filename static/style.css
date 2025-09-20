@@ -1,0 +1,31 @@
+/* static/style.css */
+.step-icon {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
+#preview {
+  max-height: 400px;
+  object-fit: contain;
+}
+
+.alert {
+  /* white-space: pre-wrap; */
+  font-family: monospace;
+}
+.heading {
+    font-size: 17px;
+    text-align: center; /* change to left or right if needed */
+}
+
+
+/* Responsive fixes */
+@media (max-width: 768px) {
+  .border-end {
+    border-right: none !important;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 1rem;
+  }
+}
