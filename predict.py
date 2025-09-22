@@ -8,7 +8,7 @@ import re
 
 # --- CONFIGURE API KEY ---
 GOOGLE_API_KEY = 'AIzaSyDTjKDxjZK02raiHrzYbAlGu1n1lM-ptag'  # Replace with your key
-genai.configure(api_key=GOOGLE_API_KEY) 
+genai.configure(api_key=GOOGLE_API_KEY)
 
 
 # --- WASTE CATEGORIES & COLORS ---
@@ -49,6 +49,7 @@ You are a professional waste classification expert specializing in environmental
 - Identify ALL visible waste items with PRECISE bounding boxes.
 - Each object must be classified accurately based on its physical properties.
 - Every object must have its own tight bounding box around only that object.
+- Bounding boxes should present center of detetcted object
 
  Object Classification Rules:
 - Wet Waste: Food scraps, peels, rotten fruits, organic matter
@@ -78,8 +79,8 @@ Return ONLY a valid JSON array with these fields:
 It should be precise bounding boxes because sometimes it doesn’t work
 
 No explanations, markdown, or extra text.
-
 """
+
 
 def get_image_dimensions(image_path):
     """Get image width and height"""
@@ -88,6 +89,7 @@ def get_image_dimensions(image_path):
         return None, None
     height, width = img.shape[:2]
     return width, height
+
 
 def classify_objects(image_path):
     """Detect and classify waste objects in image"""
@@ -163,6 +165,7 @@ def classify_objects(image_path):
         print(f"Error during classification: {e}")
         return []
 
+
 def estimate_weight(category, area_cm2):
     """Estimate tentative weight (kg) based on category and area"""
     densities = {
@@ -190,8 +193,9 @@ def estimate_weight(category, area_cm2):
 
     return min(weight_kg, max_weight)
 
+
 def draw_annotations(image_path, results, output_path="annotated_result.jpg"):
-    """Draw bounding boxes and labels on image, save to output_path"""
+    """Draw only center dots and labels on image, save to output_path (NO bounding boxes)"""
     img_cv = cv2.imread(image_path)
     if img_cv is None:
         return None
@@ -204,120 +208,38 @@ def draw_annotations(image_path, results, output_path="annotated_result.jpg"):
         x1, y1, x2, y2 = bbox
 
         color = COLOR_MAP[category]
-        cv2.rectangle(img_cv, (x1, y1), (x2, y2), color, 3)
 
-        # Label: Only show waste type (e.g., "Dry Waste")
+        # 🎯 Draw center dot at the center of the bounding box
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        cv2.circle(img_cv, (cx, cy), 6, color, -1)  # Solid circle
+
+        # Optional: Add label near the dot
         label = f"{category}"
-        font_scale = 0.7
+        font_scale = 0.6
         thickness = 2
         font = cv2.FONT_HERSHEY_SIMPLEX
 
         (text_w, text_h), _ = cv2.getTextSize(label, font, font_scale, thickness)
 
-        # Position label above box
-        label_y = y1 - 10 if y1 > text_h + 10 else y2 + 20
-        label_x = x1
+        # Position label slightly above the dot
+        label_y = cy - 15
+        label_x = cx - text_w // 2
 
-        if label_x + text_w > width:
-            label_x = width - text_w - 5
+        # Clamp within image bounds
+        label_x = max(5, min(label_x, width - text_w - 5))
+        label_y = max(text_h + 5, min(label_y, height - 10))
 
-        # Draw BLACK semi-transparent background behind text
+        # Draw semi-transparent black background
         overlay = img_cv.copy()
-        cv2.rectangle(overlay, 
-                     (label_x - 5, label_y - text_h - 5), 
-                     (label_x + text_w + 5, label_y + 5), 
-                     (0, 0, 0), -1)  # Black background
+        cv2.rectangle(overlay,
+                     (label_x - 5, label_y - text_h - 5),
+                     (label_x + text_w + 5, label_y + 5),
+                     (0, 0, 0), -1)
         cv2.addWeighted(overlay, 0.6, img_cv, 0.4, 0, img_cv)
 
-        # Draw WHITE text on top
+        # Write white text
         cv2.putText(img_cv, label, (label_x, label_y),
                     font, font_scale, (255, 255, 255), thickness)
 
-        # Center dot
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-        cv2.circle(img_cv, (cx, cy), 4, color, -1)
-
     cv2.imwrite(output_path, img_cv)
     return output_path
-
-# test_prediction.py
-from predict import classify_objects, estimate_weight
-
-def format_detection_results(results, image_path):
-    """Format detection results for terminal output"""
-    
-    # Get image dimensions for area calculation
-    import cv2
-    img = cv2.imread(image_path)
-    if img is None:
-        print(" Could not load image.")
-        return
-    
-    height, width = img.shape[:2]
-    px_to_cm = 0.1  # 100 pixels = 10 cm
-
-    print("\n" + "="*80)
-    print("🗑️  WASTE DETECTION RESULTS")
-    print("="*80 + "\n")
-
-    for i, obj in enumerate(results, 1):
-        # Calculate area
-        bbox = obj['bbox']
-        area_px = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1])
-        area_cm2 = area_px * (px_to_cm ** 2)
-        
-        # Format category color (for terminal)
-        category = obj['category']
-        color_code = {
-            "Dry Waste": "\033[32m",      # Green
-            "Wet Waste": "\033[33m",      # Yellow
-            "Hazardous Waste": "\033[31m", # Red
-            "Electronic Waste": "\033[35m", # Magenta
-            "Construction Waste": "\033[36m", # Cyan
-            "Biomedical Waste": "\033[35m"  # Purple
-        }.get(category, "\033[0m")
-        
-        # Build output string
-        output = f"{i}. {obj['object']}\n"
-        output += f"🗃️  Category: {color_code}{category}\033[0m\n"
-        output += f"📐  Area: {area_cm2:.1f} cm²"
-        
-        # Add weight only for non-Hazardous/Construction waste
-        if category not in ["Hazardous Waste", "Construction Waste"]:
-            weight_kg = estimate_weight(category, area_cm2)
-            output += f" ⚖️  Tentative Weight: {weight_kg:.2f} kg"
-        
-        output += f"\n🧹  How to Dispose: {obj['disposal']}\n"
-        
-        print(output)
-        if i < len(results):
-            print("-" * 50)
-
-def main():
-    #  CONFIGURE INPUT/OUTPUT PATHS
-    input_image = "Frame 10 (1).png"  # Replace with your image path
-    output_image = "annotated_result1.jpg"
-
-    print("🔍 Analyzing image...")
-    
-    # Detect objects
-    results = classify_objects(input_image)
-    
-    if not results:
-        print(" No waste objects detected.")
-        return
-    
-    # Draw annotations
-    from predict import draw_annotations
-    output_path = draw_annotations(input_image, results, output_image)
-    
-    if output_path:
-        print(f" Annotated image saved to: {output_path}")
-    else:
-        print(" Failed to save annotated image.")
-    
-    # Format and display results
-    format_detection_results(results, input_image)
-
-if __name__ == "__main__":
-    main()

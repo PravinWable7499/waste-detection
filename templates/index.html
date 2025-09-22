@@ -14,20 +14,20 @@
 
 <body class="bg-light">
 
-    <img src="{{ url_for('static', path='logo.png') }}" alt="Logo" class="w-100 h-75 h-lg-75">
+    <!-- <img src="{{ url_for('static', path='logo.png') }}" alt="Logo" class="w-100 h-75 h-lg-75"> -->
 
-    <!-- Navbar -->
+    <!-- Navbar
     <nav class="navbar navbar-dark bg-success shadow justify-content-center justify-content-lg-start">
-        <div class="container-fluid text-center text-lg-start">
+        <div class="container-fluid justify-content-center text-lg-start">
             <p class="text-white heading mb-0 mx-2 mx-lg-0">
                 ♻️ स्वयंचलित कचरा ओळख आणि वर्गीकरण प्रणाली ♻️
             </p>
         </div>
-        <div class="container-fluid text-center text-lg-start">
-            <p class="text-white mb-0 custom-ms text-center mx-1 mx-lg-3 sub-title">
-                (Automatic Waste Detection Classification System)
+        <div class="container-fluid justify-content-center text-lg-start">
+            <p class="text-white mb-0 custom-ms mx-1 mx-lg-3 sub-title">
+                (Automatic Waste Detection and Classification System)
             </p>
-        </div>
+        </div> -->
 
         <style>
             /* Make second line margin-left only on large screens */
@@ -51,37 +51,36 @@
 
     <div class="container py-4">
         <!-- Steps Section -->
-        <div class="card shadow mb-4">
+        <!-- <div class="card shadow mb-4">
             <div class="card-body">
-                <h4 class="card-title text-center mb-3">प्रकल्पाचे Steps</h4>
+                <h4 class="card-title text-center mb-3">प्रणाली कशी वापरावी</h4>
                 <div class="row text-center">
                     <div class="col-md-3 mb-3">
                         <div class="step-icon">1️⃣</div>
-                        <p>कचरा छायाचित्र इनपुट (Input Waste Image): वापरकर्ता कचऱ्याचे छायाचित्र अपलोड करू शकतो.</p>
+                        <p>कचऱ्याचे छायाचित्र इनपुट (Input Waste Image): वापरकर्ता कचऱ्याचे छायाचित्र अपलोड करावे.</p>
                     </div>
                     <div class="col-md-3 mb-3">
                         <div class="step-icon">2️⃣</div>
-                        <p>AI विश्लेषण (AI Analysis): प्रणालीतील कृत्रिम बुद्धिमत्ता (AI) मॉडेल अपलोड केलेल्या छायाचित्राचे सखोल विश्लेषण करते.</p>
+                        <p>कृत्रिम बुद्धिमत्ता (AI Analysis): प्रणालीतील कृत्रिम बुद्धिमत्ता (AI) मॉडेल अपलोड केलेल्या छायाचित्राचे सखोल विश्लेषण करेल.</p>
                     </div>
                     <div class="col-md-3 mb-3">
                         <div class="step-icon">3️⃣</div>
-                        <p>कचरा ओळख आणि चिन्हांकन (Waste Detection and Marking): AI प्रणाली कचऱ्याचा प्रकार ओळखते
-                            आणि मूळ छायाचित्रावर त्या प्रकाराला चिन्हांकित करते.</p>
+                        <p>कचरा वर्गीकरण (Waste Classification): AI प्रणाली कचऱ्याचे प्रकार ओळखून त्याचे वर्गीकरण करेल.</p>
                     </div>
                     <div class="col-md-3 mb-3">
                         <div class="step-icon">4️⃣</div>
-                        <p>चिन्हांकित छायाचित्र (Marked Image): कचऱ्याचा प्रकार चिन्हांकित केलेले छायाचित्र व वर्गीकृत माहिती मजकूर स्वरूपात दिली जाते.</p>
+                        <p>विल्हेवाट पद्धती: कचरा वर्गीकरण करून त्याची योग्य विल्हेवाट पद्धतीप्रमाणे करणे.</p>
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
 
         <!-- File Upload Section -->
         <div class="card shadow mb-4">
             <div class="card-body text-center">
                 <h5 class="mb-3">📷 Capture Photo/📂 Upload Image</h5>
                 <input class="form-control mb-3" type="file" id="fileInput" accept="image/*">
-                <div class="text-muted small mb-3">Supports JPG, PNG, JPEG</div>
+                <div class="text-muted small mb-3">File should be in jpg/ png/ jpeg format only </div>
 
                 <!-- Preview Section -->
                 <img id="preview" class="img-fluid rounded shadow d-none" alt="Preview"
@@ -102,7 +101,7 @@
         <!-- Results Section -->
         <div class="card shadow">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">📊 Detection Results / ओळख परिणाम</h5>
+                <h5 class="mb-0">📊 Waste Analysis / कचरा वर्गीकरण</h5>
             </div>
             <div class="card-body">
                 <div id="result" class="alert alert-info text-center">

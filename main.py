@@ -1,4 +1,3 @@
-# main.py
 from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -9,57 +8,41 @@ import shutil
 import uuid
 import tempfile
 import cv2
-import base64
 from datetime import datetime, timedelta
 from typing import Dict
 import asyncio
 import logging
 
-# Import your model logic
+# Import model logic
 from predict import classify_objects, estimate_weight
 
-# ======================
-# Setup Logging
-# ======================
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ======================
-# App Initialization
-# ======================
 app = FastAPI(
     title="Waste Detection API",
     description="AI-powered waste classification and weight estimation",
     version="1.0.0"
 )
 
-# ======================
-# Middleware
-# ======================
+# Middleware for CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 🔐 Lock down in production: ["https://yourdomain.com"]
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ======================
-# Static Files & Templates
-# ======================
+# Static & Template setup
 os.makedirs("uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# ======================
-# In-Memory Storage (for demo)
-# ======================
+# In-memory storage for temporary images
 TEMP_IMAGES: Dict[str, bytes] = {}
 TEMP_IMAGES_EXPIRY: Dict[str, datetime] = {}
 
-# ======================
-# Startup & Cleanup
-# ======================
 @app.on_event("startup")
 async def startup_event():
     logger.info("🚀 Waste Detection API started successfully!")
@@ -69,7 +52,6 @@ async def startup_event():
 async def shutdown_event():
     TEMP_IMAGES.clear()
     TEMP_IMAGES_EXPIRY.clear()
-    # Clean uploads folder
     for filename in os.listdir("uploads"):
         file_path = os.path.join("uploads", filename)
         try:
@@ -80,15 +62,11 @@ async def shutdown_event():
     logger.info("🧹 Shutdown: Cleaned temporary data")
 
 async def cleanup_expired_images():
-    """Background task to clean expired images every 5 minutes."""
     while True:
         try:
-            await asyncio.sleep(300)  # Check every 5 minutes
+            await asyncio.sleep(300)
             now = datetime.now()
-            expired_ids = [
-                img_id for img_id, expiry in TEMP_IMAGES_EXPIRY.items()
-                if now > expiry
-            ]
+            expired_ids = [img_id for img_id, expiry in TEMP_IMAGES_EXPIRY.items() if now > expiry]
             for img_id in expired_ids:
                 TEMP_IMAGES.pop(img_id, None)
                 TEMP_IMAGES_EXPIRY.pop(img_id, None)
@@ -97,49 +75,34 @@ async def cleanup_expired_images():
         except Exception as e:
             logger.error(f"⚠️ Background cleanup failed: {e}")
 
-
-# ======================
-# Routes
-# ======================
-
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Render homepage."""
     return templates.TemplateResponse("index.html", {"request": request})
-
 
 @app.post("/upload")
 async def upload_file_web(request: Request, file: UploadFile = File(...)):
-    """Handle image upload via web form, run detection, and render results."""
     try:
-        # Validate file
         if not file.filename:
             raise ValueError("No file selected")
 
-        # Generate safe filename
-        file_extension = file.filename.split('.')[-1].lower() if '.' in file.filename else 'jpg'
-        if file_extension not in {'jpg', 'jpeg', 'png', 'bmp'}:
+        ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'jpg'
+        if ext not in {"jpg", "jpeg", "png", "bmp"}:
             raise ValueError("Unsupported file type. Use JPG, PNG, or BMP.")
 
-        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        unique_filename = f"{uuid.uuid4()}.{ext}"
         file_path = os.path.join("uploads", unique_filename)
 
-        # Save uploaded file
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Run model
-        try:
-            results = classify_objects(file_path)
-        except Exception as e:
-            raise RuntimeError(f"Model inference failed: {str(e)}")
+        results = classify_objects(file_path)
 
-        # Load image with OpenCV
         img_cv = cv2.imread(file_path)
         if img_cv is None:
             raise ValueError(f"OpenCV could not load image: {file_path}")
 
-        # Annotate image
+        h, w = img_cv.shape[:2]
+
         color_map = {
             "Dry Waste": (0, 255, 0),
             "Wet Waste": (0, 255, 255),
@@ -151,46 +114,43 @@ async def upload_file_web(request: Request, file: UploadFile = File(...)):
 
         for obj in results:
             category = obj["category"]
-            bbox = obj["bbox"]
-            x1, y1, x2, y2 = bbox
+            x1, y1, x2, y2 = obj["bbox"]
+            cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
             color = color_map.get(category, (0, 255, 0))
 
-            # Draw bounding box
-            cv2.rectangle(img_cv, (x1, y1), (x2, y2), color, 3)
+            # Calculate 50x50 box centered at (cx, cy)
+            x1_box = max(0, min(cx - 25, w - 50))
+            y1_box = max(0, min(cy - 25, h - 50))
+            x2_box = x1_box + 50
+            y2_box = y1_box + 50
 
-            # Draw label
+            # # Draw bounding box
+            # cv2.rectangle(img_cv, (x1_box, y1_box), (x2_box, y2_box), color, 2)
+
+            # Draw center dot
+            cv2.circle(img_cv, (cx, cy), 5, color, -1)
+
+            # Draw category label near center point
             label = f"{category}"
             font = cv2.FONT_HERSHEY_SIMPLEX
-            font_scale, thickness = 0.7, 2
-            (text_w, text_h), _ = cv2.getTextSize(label, font, font_scale, thickness)
-
-            label_y = y1 - 10 if y1 > text_h + 10 else y2 + 20
-            label_x = min(x1, img_cv.shape[1] - text_w - 5)
+            (text_w, text_h), _ = cv2.getTextSize(label, font, 0.6, 2)
+            label_x = max(5, min(cx - text_w // 2, w - text_w - 5))
+            label_y = max(20, min(cy - 30, h - 5))
 
             overlay = img_cv.copy()
-            cv2.rectangle(overlay,
-                         (label_x - 5, label_y - text_h - 5),
-                         (label_x + text_w + 5, label_y + 5),
-                         (0, 0, 0), -1)
+            cv2.rectangle(overlay, (label_x - 5, label_y - text_h - 5),
+                         (label_x + text_w + 5, label_y + 5), (0, 0, 0), -1)
             cv2.addWeighted(overlay, 0.6, img_cv, 0.4, 0, img_cv)
-            cv2.putText(img_cv, label, (label_x, label_y),
-                       font, font_scale, (255, 255, 255), thickness)
+            cv2.putText(img_cv, label, (label_x, label_y), font, 0.6, (255, 255, 255), 2)
 
-            # Draw center point
-            cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-            cv2.circle(img_cv, (cx, cy), 4, color, -1)
-
-        # Encode image to JPEG
         is_success, buffer = cv2.imencode(".jpg", img_cv)
         if not is_success:
             raise RuntimeError("Failed to encode annotated image")
 
-        # Store in memory
         temp_id = str(uuid.uuid4())
         TEMP_IMAGES[temp_id] = buffer.tobytes()
         TEMP_IMAGES_EXPIRY[temp_id] = datetime.now() + timedelta(minutes=30)
 
-        # Format results for template
         px_to_cm = 0.1
         formatted_results = []
         for obj in results:
@@ -218,10 +178,7 @@ async def upload_file_web(request: Request, file: UploadFile = File(...)):
                 }.get(obj['category'], "#FFFFFF")
             })
 
-        # Cleanup original upload
         os.unlink(file_path)
-
-        # Render result page
         return templates.TemplateResponse("result.html", {
             "request": request,
             "original_image": unique_filename,
@@ -236,10 +193,8 @@ async def upload_file_web(request: Request, file: UploadFile = File(...)):
             "error": f"Error processing image: {str(e)}"
         })
 
-
 @app.post("/predict")
 async def predict_waste(file: UploadFile = File(...)):
-    """API endpoint for raw JSON prediction (for mobile/apps)."""
     try:
         if not file.filename:
             return JSONResponse({"success": False, "error": "No file provided"}, status_code=400)
@@ -248,12 +203,8 @@ async def predict_waste(file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, tmp_file)
             temp_path = tmp_file.name
 
-        try:
-            results = classify_objects(temp_path)
-        except Exception as e:
-            return JSONResponse({"success": False, "error": f"Model error: {str(e)}"}, status_code=500)
+        results = classify_objects(temp_path)
 
-        # Add area & weight
         px_to_cm = 0.1
         for obj in results:
             bbox = obj['bbox']
@@ -270,10 +221,8 @@ async def predict_waste(file: UploadFile = File(...)):
         logger.error(f"Prediction API failed: {e}")
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
-
 @app.get("/temp_image/{image_id}")
 async def get_temp_image(image_id: str):
-    """Serve annotated image from memory."""
     if image_id not in TEMP_IMAGES:
         return JSONResponse({"error": "Image not found"}, status_code=404)
 
@@ -284,13 +233,6 @@ async def get_temp_image(image_id: str):
 
     return Response(content=TEMP_IMAGES[image_id], media_type="image/jpeg")
 
-
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for monitoring."""
-    return {
-        "status": "healthy",
-        "message": "Waste Detection API running",
-        "version": "1.0.0",
-        "uptime": "since startup"
-    }
+    return {"status": "healthy", "message": "Waste Detection API running", "version": "1.0.0"}

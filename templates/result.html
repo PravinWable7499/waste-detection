@@ -32,14 +32,14 @@
         <!-- Results -->
         <div class="card shadow">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">📋 Detection Details</h5>
+                <h5 class="mb-0">📋 Classification Details</h5>
             </div>
             <div class="card-body">
                 {% for result in results %}
                 <div class="alert alert-light border-left-success p-3 mb-2">
                     <strong>{{ loop.index }}. {{ result.object }}</strong> ({{ result.category }})
                     <br>
-                    📐 Area: {{ result.area }} cm²{{ result.weight_info }}
+                    📐 Area: {{ result.area }} cm² <br>{{ result.weight_info }}
                     <br>
                     🧹 Disposal: {{ result.disposal }}
                 </div>
