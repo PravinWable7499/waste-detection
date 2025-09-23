@@ -95,62 +95,26 @@ async def upload_file_web(request: Request, file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
+        # Run AI detection
         results = classify_objects(file_path)
 
+        # ✅ Load image — DO NOT MODIFY IT
         img_cv = cv2.imread(file_path)
         if img_cv is None:
             raise ValueError(f"OpenCV could not load image: {file_path}")
 
-        h, w = img_cv.shape[:2]
+        # 🚫 NO DRAWING HAPPENS HERE — IMAGE IS LEFT COMPLETELY UNTOUCHED
 
-        color_map = {
-            "Dry Waste": (0, 255, 0),
-            "Wet Waste": (0, 255, 255),
-            "Hazardous Waste": (0, 0, 255),
-            "Electronic Waste": (255, 0, 255),
-            "Construction Waste": (255, 255, 0),
-            "Biomedical Waste": (128, 0, 128)
-        }
-
-        for obj in results:
-            category = obj["category"]
-            x1, y1, x2, y2 = obj["bbox"]
-            cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-            color = color_map.get(category, (0, 255, 0))
-
-            # Calculate 50x50 box centered at (cx, cy)
-            x1_box = max(0, min(cx - 25, w - 50))
-            y1_box = max(0, min(cy - 25, h - 50))
-            x2_box = x1_box + 50
-            y2_box = y1_box + 50
-
-            # # Draw bounding box
-            # cv2.rectangle(img_cv, (x1_box, y1_box), (x2_box, y2_box), color, 2)
-
-            # Draw center dot
-            cv2.circle(img_cv, (cx, cy), 20, color, -1)
-
-            # Draw category label near center point
-            label = f"{category}"
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            (text_w, text_h), _ = cv2.getTextSize(label, font, 0.6, 2)
-            label_x = max(5, min(cx - text_w // 2, w - text_w - 5))
-            label_y = max(20, min(cy - 30, h - 5))
-
-            overlay = img_cv.copy()
-            cv2.rectangle(overlay, (label_x - 5, label_y - text_h - 5),
-                         (label_x + text_w + 5, label_y + 5), (0, 0, 0), -1)
-            cv2.addWeighted(overlay, 0.6, img_cv, 0.4, 0, img_cv)
-            cv2.putText(img_cv, label, (label_x, label_y), font, 0.6, (255, 255, 255), 2)
-
+        # Encode original image
         is_success, buffer = cv2.imencode(".jpg", img_cv)
         if not is_success:
-            raise RuntimeError("Failed to encode annotated image")
+            raise RuntimeError("Failed to encode image")
 
         temp_id = str(uuid.uuid4())
         TEMP_IMAGES[temp_id] = buffer.tobytes()
         TEMP_IMAGES_EXPIRY[temp_id] = datetime.now() + timedelta(minutes=30)
 
+        # Calculate area & weight for text results
         px_to_cm = 0.1
         formatted_results = []
         for obj in results:
@@ -178,11 +142,14 @@ async def upload_file_web(request: Request, file: UploadFile = File(...)):
                 }.get(obj['category'], "#FFFFFF")
             })
 
+        # Clean up temp file
         os.unlink(file_path)
+
+        # Return original image + text results
         return templates.TemplateResponse("result.html", {
             "request": request,
-            "original_image": unique_filename,
-            "annotated_image_id": temp_id,
+            "original_image": unique_filename,  # Not used — kept for compatibility
+            "annotated_image_id": temp_id,      # Now holds ORIGINAL unmodified image
             "results": formatted_results
         })
 

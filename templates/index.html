@@ -3,116 +3,138 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smart Waste Detection</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
-    <link rel="icon" href="data:,">
+    <link rel="icon" href=",">
+    <style>
+        .dot {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+        }
+        .label {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            transform: translate(-50%, -100%);
+            pointer-events: none;
+            z-index: 10;
+            white-space: nowrap;
+        }
+        #video {
+            width: 100%;
+            max-width: 100%;
+            max-height: 70vh;
+            background: #000;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+        }
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+    </style>
 </head>
 
 <body class="bg-light">
 
-    <!-- <img src="{{ url_for('static', path='logo.png') }}" alt="Logo" class="w-100 h-75 h-lg-75"> -->
-
-    <!-- Navbar
-    <nav class="navbar navbar-dark bg-success shadow justify-content-center justify-content-lg-start">
-        <div class="container-fluid justify-content-center text-lg-start">
-            <p class="text-white heading mb-0 mx-2 mx-lg-0">
+    <!-- Navbar -->
+    <!-- <nav class="navbar navbar-dark bg-success shadow">
+        <div class="container-fluid d-flex flex-column align-items-center text-center">
+            <p class="text-white heading mb-0">
                 ♻️ स्वयंचलित कचरा ओळख आणि वर्गीकरण प्रणाली ♻️
             </p>
-        </div>
-        <div class="container-fluid justify-content-center text-lg-start">
-            <p class="text-white mb-0 custom-ms mx-1 mx-lg-3 sub-title">
+            <p class="text-white mb-0 custom-ms sub-title">
                 (Automatic Waste Detection and Classification System)
             </p>
-        </div> -->
-
-        <style>
-            /* Make second line margin-left only on large screens */
-            .custom-ms {
-                margin-left: 0;
-            }
-
-            @media (min-width: 992px) {
-                .custom-ms {
-                    margin-left: 0.5rem;
-                }
-            }
-
-            @media (min-width: 375px) {
-                .sub-title {
-                    font-size: 15px;
-                }
-            }
-        </style>
-    </nav>
+        </div>
+    </nav> -->
 
     <div class="container py-4">
-        <!-- Steps Section -->
-        <!-- <div class="card shadow mb-4">
-            <div class="card-body">
-                <h4 class="card-title text-center mb-3">प्रणाली कशी वापरावी</h4>
-                <div class="row text-center">
-                    <div class="col-md-3 mb-3">
-                        <div class="step-icon">1️⃣</div>
-                        <p>कचऱ्याचे छायाचित्र इनपुट (Input Waste Image): वापरकर्ता कचऱ्याचे छायाचित्र अपलोड करावे.</p>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="step-icon">2️⃣</div>
-                        <p>कृत्रिम बुद्धिमत्ता (AI Analysis): प्रणालीतील कृत्रिम बुद्धिमत्ता (AI) मॉडेल अपलोड केलेल्या छायाचित्राचे सखोल विश्लेषण करेल.</p>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="step-icon">3️⃣</div>
-                        <p>कचरा वर्गीकरण (Waste Classification): AI प्रणाली कचऱ्याचे प्रकार ओळखून त्याचे वर्गीकरण करेल.</p>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <div class="step-icon">4️⃣</div>
-                        <p>विल्हेवाट पद्धती: कचरा वर्गीकरण करून त्याची योग्य विल्हेवाट पद्धतीप्रमाणे करणे.</p>
-                    </div>
-                </div>
-            </div>
-        </div> -->
 
-        <!-- File Upload Section -->
+        <!-- File Upload + Live Camera Button -->
         <div class="card shadow mb-4">
             <div class="card-body text-center">
-                <h5 class="mb-3">📷 Capture Photo/📂 Upload Image</h5>
-                <input class="form-control mb-3" type="file" id="fileInput" accept="image/*">
-                <div class="text-muted small mb-3">File should be in jpg/ png/ jpeg format only </div>
+                <h5 class="mb-3" style="font-size: 0.99rem;">📂Upload Image / 📷Live Detect Waste</h5>
 
-                <!-- Preview Section -->
-                <img id="preview" class="img-fluid rounded shadow d-none" alt="Preview"
-                    style="max-height: 400px; object-fit: contain;">
-                <div>
-                    <button class="btn btn-success d-none mt-3" id="detectBtn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                            class="bi bi-search me-1" viewBox="0 0 16 16">
-                            <path
-                                d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
-                        </svg>
-                       Detect Waste<br>(कचरा तपासा)
-                    </button>
+                <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mb-3">
+                    <div class="flex-grow-1">
+                        <input class="form-control" type="file" id="fileInput" accept="image/*">
+                        <div class="text-muted small mt-1">File should be in jpg/ png/ jpeg format only</div>
+                    </div>
+                    <div>
+                        <!-- ✅ MOBILE-FRIENDLY CAMERA BUTTON -->
+                        <button class="btn btn-outline-primary" id="openCameraBtn">
+                            📹 Live Camera
+                        </button>
+                    </div>
                 </div>
+
+                <img id="preview" class="img-fluid rounded shadow d-none mt-3" alt="Preview"
+                    style="max-height: 400px; object-fit: contain;">
+                <button class="btn btn-success d-none mt-3" id="detectBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search me-1" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                    </svg>
+                    Detect Waste
+                </button>
+            </div>
+        </div>
+        
+
+        <!-- ✅ LIVE CAMERA SECTION -->
+        <div class="card shadow mb-4 d-none" id="liveSection">
+            <div class="card-body text-center">
+                <h5 class="mb-3">🎥 Live Waste Detection</h5>
+                <p class="text-muted" id="mobileWarning" style="color: #e67e22; font-weight: bold; display: none;">
+                    📱 Point camera downward at waste on flat surface for best results.
+                </p>
+
+                <div style="position: relative; display: inline-block; width: 100%;">
+                    <!-- ✅ MOBILE CAMERA-FRIENDLY VIDEO TAG -->
+                    <video id="video" autoplay playsinline muted></video>
+                    <div id="overlay"></div>
+                </div>
+
+                <div class="mt-3">
+                    <button class="btn btn-secondary me-2" id="stopDetectBtn" disabled>⏹️ Stop</button>
+                    <button class="btn btn-outline-danger" id="closeLiveBtn">❌ Close</button>
+                </div>
+                <div id="status" class="mt-2 text-muted small">Tap 'Live Camera' above to begin.</div>
             </div>
         </div>
 
         <!-- Results Section -->
         <div class="card shadow">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">📊 Waste Analysis / कचरा वर्गीकरण</h5>
+                <h5 class="mb-0">📊 Waste Analysis</h5>
             </div>
             <div class="card-body">
                 <div id="result" class="alert alert-info text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
-                        class="bi bi-info-circle me-2" viewBox="0 0 16 16">
-                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
-                        <path
-                            d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588z" />
-                        <circle cx="8" cy="4.5" r="1" />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-info-circle me-2" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                        <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588z"/>
+                        <circle cx="8" cy="4.5" r="1"/>
                     </svg>
-                    Upload an image to detect waste objects
+                    Upload an image or use live camera to detect waste
                 </div>
             </div>
         </div>
@@ -120,7 +142,247 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/script.js"></script>
-</body>
 
+    <!-- ✅ MOBILE-OPTIMIZED CAMERA SCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log("✅ DOM loaded");
+
+            // ========= UPLOAD LOGIC =========
+            const fileInput = document.getElementById("fileInput");
+            const preview = document.getElementById("preview");
+            const detectBtn = document.getElementById("detectBtn");
+            const resultDiv = document.getElementById("result");
+
+            let selectedImage = null;
+
+            fileInput?.addEventListener("change", (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        preview.src = reader.result;
+                        preview.classList.remove("d-none");
+                        detectBtn.classList.remove("d-none");
+                        selectedImage = file;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            detectBtn?.addEventListener("click", async () => {
+                if (!selectedImage) {
+                    resultDiv.innerHTML = "⚠️ Please select an image first.";
+                    resultDiv.className = "alert alert-warning";
+                    return;
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border text-success me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span>Detecting waste objects...</span>
+                    </div>
+                `;
+                resultDiv.className = "alert alert-warning";
+
+                const formData = new FormData();
+                formData.append("file", selectedImage);
+
+                try {
+                    const response = await fetch("/upload", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const html = await response.text();
+                        document.open();
+                        document.write(html);
+                        document.close();
+                    } else {
+                        const errorText = await response.text();
+                        throw new Error(`Server error: ${errorText}`);
+                    }
+                } catch (error) {
+                    resultDiv.innerHTML = `⚠️ Error: ${error.message}`;
+                    resultDiv.className = "alert alert-danger";
+                }
+            });
+
+            // ========= LIVE CAMERA LOGIC — MOBILE OPTIMIZED =========
+            const openCameraBtn = document.getElementById('openCameraBtn');
+            const liveSection = document.getElementById('liveSection');
+            const closeLiveBtn = document.getElementById('closeLiveBtn');
+            const video = document.getElementById('video');
+            const overlay = document.getElementById('overlay');
+            const stopDetectBtn = document.getElementById('stopDetectBtn');
+            const statusDiv = document.getElementById('status');
+            const mobileWarning = document.getElementById('mobileWarning');
+
+            let stream = null;
+            let detectionInterval = null;
+            let isDetecting = false;
+            let canvas = document.createElement('canvas');
+            let ctx = canvas.getContext('2d');
+
+            const colorMap = {
+                "Dry Waste": "#00FF00",
+                "Wet Waste": "#FFFF00",
+                "Hazardous Waste": "#FF0000",
+                "Electronic Waste": "#FF00FF",
+                "Construction Waste": "#00FFFF",
+                "Biomedical Waste": "#800080"
+            };
+
+            // ✅ MOBILE-FRIENDLY: Triggered DIRECTLY by user click (no setTimeout, no async delay)
+            openCameraBtn?.addEventListener('click', function () {
+                console.log("📹 Mobile camera request initiated by user click");
+
+                // Show section
+                liveSection.classList.remove("d-none");
+                window.scrollTo({ top: liveSection.offsetTop - 50, behavior: 'smooth' });
+
+                // Show mobile tip
+                if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                    mobileWarning.style.display = 'block';
+                }
+
+                // Request camera — must be DIRECT result of user click
+                requestCameraAndStart();
+            });
+
+            async function requestCameraAndStart() {
+                try {
+                    statusDiv.innerText = "⏳ Requesting camera access...";
+
+                    // ✅ Critical: getUserMedia must be called synchronously from user click
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: "environment", // Prefer back camera on mobile
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    });
+
+                    video.srcObject = stream;
+                    video.play(); // Explicitly play for mobile
+
+                    video.onloadedmetadata = () => {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        console.log("📹 Camera ready:", canvas.width, "x", canvas.height);
+                        statusDiv.innerText = "✅ Camera active. Starting detection...";
+                        startDetection();
+                    };
+
+                } catch (err) {
+                    if (err.name === 'NotAllowedError') {
+                        statusDiv.innerText = "❌ Please allow camera access in browser settings.";
+                    } else if (err.name === 'NotFoundError') {
+                        statusDiv.innerText = "❌ No camera found on this device.";
+                    } else {
+                        statusDiv.innerText = "❌ Camera error: " + err.message;
+                    }
+                    console.error("Camera Error:", err);
+                }
+            }
+
+            function startDetection() {
+                if (isDetecting) return;
+
+                isDetecting = true;
+                stopDetectBtn.disabled = false;
+                statusDiv.innerText = "▶️ Detecting every 2 seconds...";
+
+                detectionInterval = setInterval(sendFrame, 2000);
+            }
+
+            stopDetectBtn?.addEventListener('click', () => {
+                isDetecting = false;
+                stopDetectBtn.disabled = true;
+                clearInterval(detectionInterval);
+                overlay.innerHTML = '';
+                statusDiv.innerText = "⏹️ Detection paused.";
+            });
+
+            closeLiveBtn?.addEventListener('click', () => {
+                isDetecting = false;
+                clearInterval(detectionInterval);
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+                overlay.innerHTML = '';
+                liveSection.classList.add("d-none");
+                statusDiv.innerText = "Camera closed.";
+                mobileWarning.style.display = 'none';
+            });
+
+            async function sendFrame() {
+                if (!isDetecting || !video.srcObject) return;
+
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(async (blob) => {
+                    const formData = new FormData();
+                    formData.append('file', blob, 'frame.jpg');
+
+                    try {
+                        const response = await fetch('/predict', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                        const result = await response.json();
+                        if (result.success) {
+                            drawDetections(result.results);
+                        }
+
+                    } catch (err) {
+                        console.warn("Detection skipped:", err.message);
+                    }
+                }, 'image/jpeg', 0.7); // Slightly lower quality for faster mobile upload
+            }
+
+            function drawDetections(detections) {
+                overlay.innerHTML = '';
+
+                const videoRect = video.getBoundingClientRect();
+                const scaleX = videoRect.width / canvas.width;
+                const scaleY = videoRect.height / canvas.height;
+
+                detections.forEach(det => {
+                    const [x1, y1, x2, y2] = det.bbox;
+                    const cx = ((x1 + x2) / 2) * scaleX;
+                    const cy = ((y1 + y2) / 2) * scaleY;
+
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    dot.style.left = cx + 'px';
+                    dot.style.top = cy + 'px';
+                    dot.style.backgroundColor = colorMap[det.category] || '#FFFFFF';
+                    overlay.appendChild(dot);
+
+                    const label = document.createElement('div');
+                    label.className = 'label';
+                    label.style.left = cx + 'px';
+                    label.style.top = cy + 'px';
+                    label.innerText = det.category;
+                    overlay.appendChild(label);
+                });
+            }
+
+            window.addEventListener('beforeunload', () => {
+                if (stream) stream.getTracks().forEach(t => t.stop());
+                if (detectionInterval) clearInterval(detectionInterval);
+            });
+
+            console.log("✅ Mobile-optimized camera script ready");
+        });
+    </script>
+
+</body>
 </html>
