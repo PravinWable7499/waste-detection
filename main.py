@@ -128,7 +128,7 @@ async def upload_file_web(request: Request, file: UploadFile = File(...)):
             # cv2.rectangle(img_cv, (x1_box, y1_box), (x2_box, y2_box), color, 2)
 
             # Draw center dot
-            cv2.circle(img_cv, (cx, cy), 5, color, -1)
+            cv2.circle(img_cv, (cx, cy), 20, color, -1)
 
             # Draw category label near center point
             label = f"{category}"
