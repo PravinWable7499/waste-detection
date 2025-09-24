@@ -56,51 +56,45 @@
 
 <body class="bg-light">
 
-    <!-- Navbar -->
-    <!-- <nav class="navbar navbar-dark bg-success shadow">
-        <div class="container-fluid d-flex flex-column align-items-center text-center">
-            <p class="text-white heading mb-0">
-                ♻️ स्वयंचलित कचरा ओळख आणि वर्गीकरण प्रणाली ♻️
-            </p>
-            <p class="text-white mb-0 custom-ms sub-title">
-                (Automatic Waste Detection and Classification System)
-            </p>
-        </div>
-    </nav> -->
-
     <div class="container py-4">
 
-        <!-- File Upload + Live Camera Button -->
+        <!-- File Upload Section -->
         <div class="card shadow mb-4">
             <div class="card-body text-center">
-                <h5 class="mb-3" style="font-size: 0.99rem;">📂Upload Image / 📷Live Detect Waste</h5>
+                <h5 class="mb-3">📂 Upload Image</h5>
+                <input class="form-control mb-3" type="file" id="fileInput" accept="image/*">
+                <div class="text-muted small mb-3">File should be in jpg/ png/ jpeg format only</div>
 
-                <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mb-3">
-                    <div class="flex-grow-1">
-                        <input class="form-control" type="file" id="fileInput" accept="image/*">
-                        <div class="text-muted small mt-1">File should be in jpg/ png/ jpeg format only</div>
-                    </div>
-                    <div>
-                        <!-- ✅ MOBILE-FRIENDLY CAMERA BUTTON -->
-                        <button class="btn btn-outline-primary" id="openCameraBtn">
-                            📹 Live Camera
-                        </button>
-                    </div>
-                </div>
-
-                <img id="preview" class="img-fluid rounded shadow d-none mt-3" alt="Preview"
+                <!-- Preview Section -->
+                <img id="preview" class="img-fluid rounded shadow d-none" alt="Preview"
                     style="max-height: 400px; object-fit: contain;">
-                <button class="btn btn-success d-none mt-3" id="detectBtn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search me-1" viewBox="0 0 16 16">
-                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
-                    </svg>
-                    Detect Waste
-                </button>
+                <div>
+                    <button class="btn btn-success d-none mt-3" id="detectBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            class="bi bi-search me-1" viewBox="0 0 16 16">
+                            <path
+                                d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                        </svg>
+                        Detect Waste/ कचरा तपासा
+                    </button>
+                </div>
             </div>
         </div>
-        
 
-        <!-- ✅ LIVE CAMERA SECTION -->
+        <!-- ✅ LIVE CAMERA SECTION — NOW SEPARATE AND BELOW -->
+        <div class="card shadow mb-4">
+            <div class="card-body text-center">
+                <h5 class="mb-3">📹 Live Detect Waste</h5>
+                <button class="btn btn-outline-primary" id="openCameraBtn">
+                    📹Live Camera
+                </button>
+                <div class="text-muted small mt-2">
+                    Tap to open camera and detect waste in real-time.
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ LIVE CAMERA FEED (Hidden by default) -->
         <div class="card shadow mb-4 d-none" id="liveSection">
             <div class="card-body text-center">
                 <h5 class="mb-3">🎥 Live Waste Detection</h5>
@@ -109,7 +103,6 @@
                 </p>
 
                 <div style="position: relative; display: inline-block; width: 100%;">
-                    <!-- ✅ MOBILE CAMERA-FRIENDLY VIDEO TAG -->
                     <video id="video" autoplay playsinline muted></video>
                     <div id="overlay"></div>
                 </div>
@@ -118,7 +111,7 @@
                     <button class="btn btn-secondary me-2" id="stopDetectBtn" disabled>⏹️ Stop</button>
                     <button class="btn btn-outline-danger" id="closeLiveBtn">❌ Close</button>
                 </div>
-                <div id="status" class="mt-2 text-muted small">Tap 'Live Camera' above to begin.</div>
+                <div id="status" class="mt-2 text-muted small">Camera will start automatically.</div>
             </div>
         </div>
 
@@ -129,10 +122,12 @@
             </div>
             <div class="card-body">
                 <div id="result" class="alert alert-info text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-info-circle me-2" viewBox="0 0 16 16">
-                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                        <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588z"/>
-                        <circle cx="8" cy="4.5" r="1"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                        class="bi bi-info-circle me-2" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                        <path
+                            d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588z" />
+                        <circle cx="8" cy="4.5" r="1" />
                     </svg>
                     Upload an image or use live camera to detect waste
                 </div>
@@ -143,7 +138,7 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- ✅ MOBILE-OPTIMIZED CAMERA SCRIPT -->
+    <!-- ✅ MOBILE-OPTIMIZED CAMERA SCRIPT (unchanged) -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             console.log("✅ DOM loaded");
@@ -236,38 +231,31 @@
                 "Biomedical Waste": "#800080"
             };
 
-            // ✅ MOBILE-FRIENDLY: Triggered DIRECTLY by user click (no setTimeout, no async delay)
             openCameraBtn?.addEventListener('click', function () {
                 console.log("📹 Mobile camera request initiated by user click");
-
-                // Show section
                 liveSection.classList.remove("d-none");
                 window.scrollTo({ top: liveSection.offsetTop - 50, behavior: 'smooth' });
 
-                // Show mobile tip
                 if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
                     mobileWarning.style.display = 'block';
                 }
 
-                // Request camera — must be DIRECT result of user click
                 requestCameraAndStart();
             });
 
             async function requestCameraAndStart() {
                 try {
                     statusDiv.innerText = "⏳ Requesting camera access...";
-
-                    // ✅ Critical: getUserMedia must be called synchronously from user click
                     stream = await navigator.mediaDevices.getUserMedia({
                         video: {
-                            facingMode: "environment", // Prefer back camera on mobile
+                            facingMode: "environment",
                             width: { ideal: 1280 },
                             height: { ideal: 720 }
                         }
                     });
 
                     video.srcObject = stream;
-                    video.play(); // Explicitly play for mobile
+                    video.play();
 
                     video.onloadedmetadata = () => {
                         canvas.width = video.videoWidth;
@@ -291,11 +279,9 @@
 
             function startDetection() {
                 if (isDetecting) return;
-
                 isDetecting = true;
                 stopDetectBtn.disabled = false;
                 statusDiv.innerText = "▶️ Detecting every 2 seconds...";
-
                 detectionInterval = setInterval(sendFrame, 2000);
             }
 
@@ -344,7 +330,7 @@
                     } catch (err) {
                         console.warn("Detection skipped:", err.message);
                     }
-                }, 'image/jpeg', 0.7); // Slightly lower quality for faster mobile upload
+                }, 'image/jpeg', 0.7);
             }
 
             function drawDetections(detections) {
