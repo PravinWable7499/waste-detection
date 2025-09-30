@@ -13,7 +13,6 @@ from typing import Dict
 import asyncio
 import logging
 
-# Import model logic
 from predict import classify_objects, estimate_weight
 
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +24,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Middleware for CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,12 +32,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static & Template setup
 os.makedirs("uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# In-memory storage for temporary images
 TEMP_IMAGES: Dict[str, bytes] = {}
 TEMP_IMAGES_EXPIRY: Dict[str, datetime] = {}
 
@@ -95,17 +91,12 @@ async def upload_file_web(request: Request, file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Run AI detection
         results = classify_objects(file_path)
 
-        # ✅ Load image — DO NOT MODIFY IT
         img_cv = cv2.imread(file_path)
         if img_cv is None:
             raise ValueError(f"OpenCV could not load image: {file_path}")
 
-        # 🚫 NO DRAWING HAPPENS HERE — IMAGE IS LEFT COMPLETELY UNTOUCHED
-
-        # Encode original image
         is_success, buffer = cv2.imencode(".jpg", img_cv)
         if not is_success:
             raise RuntimeError("Failed to encode image")
@@ -114,7 +105,6 @@ async def upload_file_web(request: Request, file: UploadFile = File(...)):
         TEMP_IMAGES[temp_id] = buffer.tobytes()
         TEMP_IMAGES_EXPIRY[temp_id] = datetime.now() + timedelta(minutes=30)
 
-        # Calculate area & weight for text results
         px_to_cm = 0.1
         formatted_results = []
         for obj in results:
@@ -126,8 +116,13 @@ async def upload_file_web(request: Request, file: UploadFile = File(...)):
                 weight_kg = estimate_weight(obj['category'], area_cm2)
                 weight_info = f" ⚖️ Tentative Weight: {weight_kg:.2f} kg"
 
+            # ✅ ONLY CHANGE: Format object name if count > 1
+            object_name = obj['object']
+            if obj.get('count', 1) > 1:
+                object_name = f"Set of {object_name}s"
+
             formatted_results.append({
-                'object': obj['object'],
+                'object': object_name,
                 'category': obj['category'],
                 'area': f"{area_cm2:.1f}",
                 'weight_info': weight_info,
@@ -142,14 +137,12 @@ async def upload_file_web(request: Request, file: UploadFile = File(...)):
                 }.get(obj['category'], "#FFFFFF")
             })
 
-        # Clean up temp file
         os.unlink(file_path)
 
-        # Return original image + text results
         return templates.TemplateResponse("result.html", {
             "request": request,
-            "original_image": unique_filename,  # Not used — kept for compatibility
-            "annotated_image_id": temp_id,      # Now holds ORIGINAL unmodified image
+            "original_image": unique_filename,
+            "annotated_image_id": temp_id,
             "results": formatted_results
         })
 
@@ -180,6 +173,7 @@ async def predict_waste(file: UploadFile = File(...)):
             obj['area_cm2'] = round(area_cm2, 1)
             if obj['category'] not in ["Hazardous Waste", "Construction Waste"]:
                 obj['tentative_weight_kg'] = round(estimate_weight(obj['category'], area_cm2), 2)
+                
 
         os.unlink(temp_path)
         return {"success": True, "count": len(results), "results": results}

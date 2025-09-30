@@ -1,4 +1,3 @@
-<!-- templates/result.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,24 +11,20 @@
     <div class="container py-4">
         <h1 class="text-center mb-4">✅ Waste Detection Results<br>कचरा ओळख परिणाम</h1>
 
-        <!-- Original Image -->
-        <div class="card shadow mb-4">
+        <!-- <div class="card shadow mb-4">
             <div class="card-body">
                 <h5 class="mb-3">📸 Original Image / मूळ प्रतिमा</h5>
                 <img src="/static/{{ original_image }}" alt="Original" class="img-fluid rounded shadow">
             </div>
-        </div>
+        </div> -->
 
-        <!-- Annotated Image -->
         <div class="card shadow mb-4">
             <div class="card-body">
                 <h5 class="mb-3">🎯 Annotated Result(विश्लेषित निकाल)</h5>
-                <!-- ✅ Changed to use temp_image endpoint -->
                 <img src="/temp_image/{{ annotated_image_id }}" alt="Annotated" class="img-fluid rounded shadow">
             </div>
         </div>
 
-        <!-- Results -->
         <div class="card shadow">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">📋 Classification Details</h5>
@@ -47,7 +42,6 @@
             </div>
         </div>
         
-        <!-- ✅ Add download button -->
         <div class="text-center mt-3 d-grid gap-2 col-10 mx-auto">
             <a href="/" class="btn btn-primary">🔙 Analyze Another Image<br>(दुसरी प्रतिमा विश्लेषित करा)</a>
             <a href="/temp_image/{{ annotated_image_id }}" download="waste_detection_result.jpg" class="btn btn-success">
