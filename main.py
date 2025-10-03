@@ -197,3 +197,5 @@ async def get_temp_image(image_id: str):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "message": "Waste Detection API running", "version": "1.0.0"}
+
+

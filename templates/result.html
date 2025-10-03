@@ -6,6 +6,98 @@
     <title>✅ Waste Detection Results</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .bin-icon {
+            width: 40px;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .bin-label {
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 2px;
+            white-space: nowrap;
+        }
+        .disposal-guide {
+            background-color: #f8f9fa;
+            border-left: 3px solid #0d6efd;
+            padding: 10px;
+            margin-top: 8px;
+            border-radius: 4px;
+        }
+        .station-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 8px;
+            border-left: 3px solid #007bff;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .station-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            background-color: #f0f8ff;
+        }
+        .station-name {
+            font-weight: bold;
+            color: #007bff;
+            text-decoration: underline;
+        }
+        .station-address {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .distance-info {
+            font-size: 0.8rem;
+            color: #28a745;
+            font-weight: bold;
+        }
+        .location-status {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        .location-instructions {
+            background-color: #e7f3ff;
+            border: 1px solid #bee5eb;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        .location-instructions h6 {
+            margin-bottom: 8px;
+            color: #0c5460;
+        }
+        .btn-location {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .btn-location:hover {
+            background-color: #0056b3;
+        }
+        .zone-header {
+            background-color: #f8f9fa;
+            padding: 8px;
+            margin: 10px 0 5px 0;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #495057;
+        }
+        .map-icon {
+            font-size: 0.9rem;
+            margin-right: 4px;
+            color: #dc3545;
+        }
+    </style>
 </head>
 <body class="bg-light">
     <div class="container py-4">
@@ -31,12 +123,131 @@
             </div>
             <div class="card-body">
                 {% for result in results %}
-                <div class="alert alert-light border-left-success p-3 mb-2">
+                <div class="alert alert-light border-left-success p-3 mb-3 position-relative">
+                    <!-- Bin Icon -->
+                    <div class="position-absolute top-0 end-0 me-2 mt-2 text-center">
+                        {% if result.category == "Wet Waste" %}
+                            <img src="/static/green-bin.png" alt="Wet Waste" class="bin-icon">
+                            <div class="bin-label" style="color: #011501;">Wet Waste</div>
+                        {% elif result.category == "Dry Waste" %}
+                            <img src="/static/blue-bin.png" alt="Dry Waste" class="bin-icon">
+                            <div class="bin-label" style="color: #010113;">Dry Waste</div>
+                        {% elif result.category == "Hazardous Waste" %}
+                            <img src="/static/red-bin.png" alt="Hazardous Waste" class="bin-icon">
+                            <div class="bin-label" style="color: #160101;">Hazardous Waste</div>
+                        {% elif result.category == "Electronic Waste" %}
+                            <img src="/static/gray-bin.png" alt="E-Waste" class="bin-icon">
+                            <div class="bin-label" style="color: #130101;">E-Waste</div>
+                        {% elif result.category == "Construction Waste" %}
+                            <img src="/static/orange-bin.png" alt="Construction Waste" class="bin-icon">
+                            <div class="bin-label" style="color: #140b01;">Construction Waste</div>
+                        {% elif result.category == "Biomedical Waste" %}
+                            <img src="/static/purple-bin.png" alt="Biomedical Waste" class="bin-icon">
+                            <div class="bin-label" style="color: #800080;">Biomedical Waste</div>
+                        {% else %}
+                            <img src="/static/blue-bin.png" alt="Unknown" class="bin-icon">
+                            <div class="bin-label">Other</div>
+                        {% endif %}
+                    </div>
+
                     <strong>{{ loop.index }}. {{ result.object }}</strong> ({{ result.category }})
                     <br>
-                    📐 Area: {{ result.area }} cm² <br>{{ result.weight_info }}
-                    <br>
-                    🧹 Disposal: {{ result.disposal }}
+                    📐 Area: {{ result.area }} cm²
+                    {% if result.weight_info %}<br>{{ result.weight_info }}{% endif %}
+
+                    <!-- ✅ COLLAPSIBLE DISPOSAL BUTTON -->
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-secondary" 
+                                type="button" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#disposal-{{ loop.index }}">
+                            🧹 Show Disposal Guide
+                        </button>
+                    </div>
+
+                    <!-- ✅ COLLAPSIBLE DISPOSAL CONTENT -->
+                    <!-- <div class="collapse mt-2" id="disposal-{{ loop.index }}">
+                        <div class="disposal-guide">
+                            <strong>Standard Disposal:</strong><br>
+                            {{ result.disposal }}
+                            <br><br>
+                            <strong>Where to Throw:</strong><br>
+                            {% if result.category == "Wet Waste" %}
+                                🏠 Compost at home in a kitchen compost bin<br>
+                                🏘️ Or hand over to municipal wet waste collection
+                            {% elif result.category == "Dry Waste" %}
+                                ♻️ Place in blue dry waste bin<br>
+                                📦 Ensure clean & dry before recycling
+                            {% elif result.category == "Hazardous Waste" %}
+                                ⚠️ Do NOT throw in regular trash<br>
+                                🏢 Take to designated hazardous waste collection center
+                            {% elif result.category == "Electronic Waste" %}
+                                🔋 Return to e-waste recycling center<br>
+                                📱 Many electronics stores accept old devices
+                            {% elif result.category == "Construction Waste" %}
+                                🏗️ Contact licensed waste removal service<br>
+                                🚫 Never dump on roads or public land
+                            {% elif result.category == "Biomedical Waste" %}
+                                🩺 Hand over ONLY to medical waste handlers<br>
+                                🚫 Never mix with household waste
+                            {% else %}
+                                🗑️ Dispose in appropriate municipal bin
+                            {% endif %} -->
+
+                    <div class="collapse mt-2" id="disposal-{{ loop.index }}">
+                        <div class="disposal-guide">
+                            <strong>Standard Disposal:</strong><br>
+                            {{ result.disposal }}
+                            <br><br>
+                            <strong>Where to Throw:</strong><br>
+                            {% if result.category == "Wet Waste" %}
+                                🏠 Compost at home in a kitchen compost bin<br>
+                                🚛 Or hand over to the vehicle of Kachragadi
+                            {% elif result.category == "Dry Waste" %}
+                                ♻️ Place in blue dry waste bin<br>
+                                📦 Ensure clean & dry before recycling<br>
+                                🚛 Hand over to the vehicle of Kachragadi
+                            {% elif result.category == "Hazardous Waste" %}
+                                ⚠️ Do NOT throw in regular trash<br>
+                                🏢 Take to designated hazardous waste collection center<br>
+                                📞 Contact municipal authorities for special collection
+                            {% elif result.category == "Electronic Waste" %}
+                                🔋 Return to e-waste recycling center<br>
+                                📱 Many electronics stores accept old devices<br>
+                                📞 Contact municipal authorities for e-waste collection
+                            {% elif result.category == "Construction Waste" %}
+                                🏗️ Contact licensed waste removal service<br>
+                                🚫 Never dump on roads or public land<br>
+                                📞 Call municipal helpline for construction waste pickup
+                            {% elif result.category == "Biomedical Waste" %}
+                                🩺 Hand over ONLY to medical waste handlers<br>
+                                🚫 Never mix with household waste<br>
+                                📞 Contact hospital or medical facility for proper disposal
+                            {% else %}
+                                🗑️ Dispose in appropriate municipal bin<br>
+                                🚛 Hand over to the vehicle of Kachragadi
+                            {% endif %}
+
+                            <br><br>
+                            <div class="location-status" id="location-status-{{ loop.index }}">
+                                📍 Ready to find your nearest stations in Chhatrapati Sambhajinagar
+                            </div>
+                            
+                            <div class="location-instructions">
+                                <h6>📍 Find Nearest Waste Stations:</h6>
+                                <p class="mb-2">"Click below to find nearby waste collection centers.</p>
+                                <button class="btn-location" onclick="requestLocation({{ loop.index }}, '{{ result.category }}')">
+                                    🔍 Find My Nearest Stations
+                                </button>
+                            </div>
+                            
+                            <div id="stations-container-{{ loop.index }}">
+                                <div class="text-muted">
+                                    Stations in Chhatrapati Sambhajinagar will appear here.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -52,5 +263,188 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/script.js"></script>
+
+    <script>
+        // Store user location globally so we can use it for map links
+        let userLocation = null;
+
+        // Waste stations in Chhatrapati Sambhajinagar (Aurangabad) - Comprehensive database
+        const WASTE_STATIONS = {
+            "Wet Waste": [
+                {name: "Chhatrapati Sambhajinagar Municipal Compost Plant", lat: 19.8762, lng: 75.3433, address: "Near CIDCO, Aurangabad", hours: "7 AM - 6 PM"},
+                {name: "Organic Waste Processing Unit", lat: 19.8510, lng: 75.3350, address: "Shendra MIDC, Aurangabad", hours: "8 AM - 5 PM"},
+                {name: "Green Waste Collection Center", lat: 19.8920, lng: 75.3610, address: "Waluj, Aurangabad", hours: "7 AM - 7 PM"},
+                {name: "Biogas Plant - Chikhalthana", lat: 19.8340, lng: 75.3280, address: "Chikhalthana, Aurangabad", hours: "7 AM - 6 PM"},
+                {name: "Community Compost Facility", lat: 19.9120, lng: 75.3720, address: "Satara Road, Aurangabad", hours: "8 AM - 5 PM"},
+                {name: "Organic Waste Hub - Osmanpura", lat: 19.8680, lng: 75.3520, address: "Osmanpura, Aurangabad", hours: "7 AM - 6 PM"},
+                {name: "Wet Waste Processing Center", lat: 19.8450, lng: 75.3190, address: "New Shendra, Aurangabad", hours: "8 AM - 5 PM"}
+            ],
+            "Dry Waste": [
+                {name: "CSM Municipal Recycling Center", lat: 19.8762, lng: 75.3433, address: "Municipal Corporation HQ, Aurangabad", hours: "8 AM - 8 PM"},
+                {name: "Paper & Plastic Recycling Hub", lat: 19.8580, lng: 75.3280, address: "Station Road, Aurangabad", hours: "9 AM - 6 PM"},
+                {name: "Dry Waste Collection Point", lat: 19.9010, lng: 75.3520, address: "Garkheda, Aurangabad", hours: "7 AM - 7 PM"},
+                {name: "Recycling Center - Kranti Chowk", lat: 19.8720, lng: 75.3380, address: "Kranti Chowk, Aurangabad", hours: "8 AM - 7 PM"},
+                {name: "Plastic & Paper Recovery Unit", lat: 19.8850, lng: 75.3650, address: "Waluj MIDC Phase II, Aurangabad", hours: "9 AM - 6 PM"},
+                {name: "Dry Waste Sorting Facility", lat: 19.8520, lng: 75.3210, address: "Jalna Road, Aurangabad", hours: "8 AM - 7 PM"},
+                {name: "Recycling Collection Center", lat: 19.9080, lng: 75.3780, address: "Satara Road Extension, Aurangabad", hours: "9 AM - 6 PM"},
+                {name: "Municipal Dry Waste Hub", lat: 19.8630, lng: 75.3470, address: "Nagsenvan, Aurangabad", hours: "8 AM - 8 PM"}
+            ],
+            "Hazardous Waste": [
+                {name: "Aurangabad Hazardous Waste Facility", lat: 19.8420, lng: 75.3180, address: "Shendra Industrial Area, Aurangabad", hours: "10 AM - 4 PM (Mon-Sat)"},
+                {name: "Chemical Waste Treatment Center", lat: 19.8380, lng: 75.3120, address: "New Shendra Industrial Area, Aurangabad", hours: "10 AM - 4 PM (Mon-Fri)"},
+                {name: "Toxic Waste Management Unit", lat: 19.8550, lng: 75.3250, address: "Industrial Estate, Aurangabad", hours: "11 AM - 3 PM (Tue-Sat)"}
+            ],
+            "Electronic Waste": [
+                {name: "E-Waste Collection Center", lat: 19.8762, lng: 75.3433, address: "Municipal Corporation Building, Aurangabad", hours: "10 AM - 5 PM"},
+                {name: "Tech Scrap Recycling", lat: 19.8650, lng: 75.3320, address: "Nagsenvan, Aurangabad", hours: "11 AM - 6 PM"},
+                {name: "Electronic Waste Drop-off Point", lat: 19.8820, lng: 75.3580, address: "Waluj MIDC, Aurangabad", hours: "10 AM - 6 PM"},
+                {name: "E-Waste Recycling Hub", lat: 19.8540, lng: 75.3290, address: "Station Road, Aurangabad", hours: "11 AM - 5 PM"},
+                {name: "Digital Waste Collection Center", lat: 19.9050, lng: 75.3750, address: "Satara Road, Aurangabad", hours: "10 AM - 6 PM"}
+            ],
+            "Construction Waste": [
+                {name: "Debris Management Yard", lat: 19.8350, lng: 75.3250, address: "Shendra MIDC, Aurangabad", hours: "6 AM - 6 PM"},
+                {name: "Construction Waste Processing Unit", lat: 19.8280, lng: 75.3180, address: "New Shendra, Aurangabad", hours: "6 AM - 6 PM"},
+                {name: "Building Debris Collection Center", lat: 19.8950, lng: 75.3680, address: "Waluj Extension, Aurangabad", hours: "7 AM - 7 PM"},
+                {name: "Rubble Management Facility", lat: 19.8620, lng: 75.3550, address: "Garkheda Road, Aurangabad", hours: "6 AM - 6 PM"}
+            ],
+            "Biomedical Waste": [
+                {name: "Bio-Medical Waste Treatment Plant", lat: 19.8720, lng: 75.3480, address: "Near Government Hospital, Aurangabad", hours: "24/7 Emergency Service"},
+                {name: "Medical Waste Incineration Unit", lat: 19.8680, lng: 75.3420, address: "Medical College Area, Aurangabad", hours: "24/7"},
+                {name: "Hospital Waste Processing Center", lat: 19.8850, lng: 75.3590, address: "Waluj Medical Zone, Aurangabad", hours: "24/7"},
+                {name: "Clinical Waste Treatment Facility", lat: 19.8590, lng: 75.3310, address: "Civil Hospital Area, Aurangabad", hours: "24/7"}
+            ]
+        };
+        
+
+        // Calculate distance between two coordinates
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                     Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Proper kilometer formatting
+        function formatDistance(km) {
+            if (km < 0.1) {
+                return Math.round(km * 1000) + " m";
+            } else if (km < 1) {
+                return (km * 1000).toFixed(0) + " m";
+            } else {
+                return km.toFixed(2) + " km";
+            }
+        }
+
+        // Open Google Maps with directions
+        function openMapDirections(stationLat, stationLng, stationName) {
+            if (!userLocation) {
+                alert("Please allow location access first to get directions.");
+                return;
+            }
+            
+            const userLat = userLocation.lat;
+            const userLng = userLocation.lng;
+            
+            // Create Google Maps URL for directions
+            const url = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${stationLat},${stationLng}&travelmode=driving`;
+            
+            // Open in new tab
+            window.open(url, '_blank');
+        }
+
+        // Request location and find nearest stations
+        function requestLocation(itemIndex, category) {
+            const statusEl = document.getElementById(`location-status-${itemIndex}`);
+            const containerEl = document.getElementById(`stations-container-${itemIndex}`);
+            const button = event.target;
+            
+            if (!navigator.geolocation) {
+                statusEl.innerHTML = '❌ Location services not supported';
+                containerEl.innerHTML = '<div class="text-danger">Your browser does not support location services.</div>';
+                return;
+            }
+
+            statusEl.innerHTML = '📍 Detecting your location in Aurangabad...';
+            button.disabled = true;
+            button.innerHTML = '⏳ Finding...';
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    
+                    // Store user location globally for map links
+                    userLocation = { lat: userLat, lng: userLng };
+                    
+                    statusEl.innerHTML = `✅ Located you in Chhatrapati Sambhajinagar`;
+                    
+                    const stations = WASTE_STATIONS[category] || [];
+                    if (stations.length === 0) {
+                        containerEl.innerHTML = '<div class="text-muted">No stations available for this waste type in Aurangabad.</div>';
+                        return;
+                    }
+                    
+                    const stationsWithDistance = stations.map(station => {
+                        const distance = calculateDistance(userLat, userLng, station.lat, station.lng);
+                        return {...station, distance: distance};
+                    }).sort((a, b) => a.distance - b.distance);
+                    
+                    let html = '<strong>📍 Your Nearest Waste Stations:</strong>';
+                    
+                    // ✅ FIXED: Show simple list without zone grouping (since stations don't have zone property)
+                    stationsWithDistance.slice(0, 5).forEach(station => {
+                        html += `
+                            <div class="station-card" onclick="openMapDirections(${station.lat}, ${station.lng}, '${station.name.replace(/'/g, "\\'")}')">
+                                <div class="station-name">
+                                    <span class="map-icon">🗺️</span>${station.name}
+                                </div>
+                                <div class="station-address">${station.address}</div>
+                                <small class="text-muted">Open: ${station.hours}</small>
+                                <div style="margin-top: 4px; font-size: 0.75rem; color: #6c757d;">
+                                    <strong>Tap to view route on map</strong>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    containerEl.innerHTML = html;
+                },
+                function(error) {
+                    console.error('Location error:', error);
+                    let errorMessage = '❌ Location access denied';
+                    if (error.code === 1) {
+                        errorMessage = '❌ Location access blocked';
+                        containerEl.innerHTML = `
+                            <div class="text-danger">
+                                <strong>How to fix this:</strong><br>
+                                1. Look for location permission prompt in your browser<br>
+                                2. Click "Allow" to enable location detection<br>
+                                3. Refresh and try again
+                            </div>
+                        `;
+                    } else if (error.code === 2) {
+                        errorMessage = '❌ Location unavailable';
+                        containerEl.innerHTML = '<div class="text-warning">Please check your GPS settings and try again.</div>';
+                    } else if (error.code === 3) {
+                        errorMessage = '❌ Request timed out';
+                        containerEl.innerHTML = '<div class="text-warning">Please try again with better GPS signal.</div>';
+                    }
+                    
+                    statusEl.innerHTML = errorMessage;
+                    button.disabled = false;
+                    button.innerHTML = '🔍 Try Again';
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 300000
+                }
+            );
+        }
+    </script>
 </body>
 </html>
