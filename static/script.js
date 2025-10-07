@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // ========= LIVE CAMERA LOGIC — CLICK TO DETECT =========
+    // ========= LIVE CAMERA LOGIC =========
     const openLiveBtn = document.getElementById("openLiveBtn");
     const liveSection = document.getElementById("liveSection");
     const closeLiveBtn = document.getElementById("closeLiveBtn");
@@ -145,15 +145,12 @@ document.addEventListener('DOMContentLoaded', function () {
         isDetecting = true;
         liveStatus.innerText = "🔍 Analyzing...";
 
-        // Get click position relative to video element
         const rect = video.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
         const clickY = e.clientY - rect.top;
 
-        // Capture current video frame
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Send to backend
         canvas.toBlob(async (blob) => {
             const formData = new FormData();
             formData.append('file', blob, 'frame.jpg');
@@ -180,41 +177,33 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 'image/jpeg', 0.7);
     });
 
-    // ✅ FIXED: Process detection near click — PROPER MOBILE SCALING
+    // ✅ Handle click detection (proper scaling)
     function processClickDetection(detections, clickX, clickY, displayWidth, displayHeight) {
         overlay.innerHTML = '';
 
-        // Get actual camera frame dimensions
         const naturalWidth = video.videoWidth;
         const naturalHeight = video.videoHeight;
-
-        // Calculate scale factors
         const scaleX = naturalWidth / displayWidth;
         const scaleY = naturalHeight / displayHeight;
-
-        // Convert tap position to camera frame coordinates
         const naturalClickX = clickX * scaleX;
         const naturalClickY = clickY * scaleY;
 
-        // Find object under tap
         for (let det of detections) {
             const [x1, y1, x2, y2] = det.bbox;
 
-            // Check if tap is inside bounding box (in camera coordinates)
-            if (naturalClickX >= x1 && naturalClickX <= x2 && 
+            if (naturalClickX >= x1 && naturalClickX <= x2 &&
                 naturalClickY >= y1 && naturalClickY <= y2) {
-                
-                // Calculate center in camera coordinates
-                const cxNatural = (x1 + x2) / 2;
-                const cyNatural = (y1 + y2) / 2;
-                
-                // Convert center back to display coordinates for drawing
-                const cxDisplay = cxNatural / scaleX;
-                const cyDisplay = cyNatural / scaleY;
 
-                // ✅ Draw dot + full label at CORRECT position
+                const cxDisplay = ((x1 + x2) / 2) / scaleX;
+                const cyDisplay = ((y1 + y2) / 2) / scaleY;
+
                 drawDotAndLabel(cxDisplay, cyDisplay, det.category, det.object);
                 liveStatus.innerText = `✅ Detected: ${det.object} (${det.category})`;
+
+                // ✅ NEW: Display disposal info (with proper <br> formatting)
+                if (det.disposalInfoHTML) {
+                    showDisposalInfo(det.disposalInfoHTML);
+                }
                 return;
             }
         }
@@ -224,10 +213,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ✅ Draw dot and label at DISPLAY coordinates
     function drawDotAndLabel(x, y, category, objectName = "Unknown Object") {
-        // Clear any previous annotations
         overlay.innerHTML = '';
 
-        // Dot
         const dot = document.createElement('div');
         dot.className = 'dot';
         dot.style.left = `${x}px`;
@@ -235,13 +222,21 @@ document.addEventListener('DOMContentLoaded', function () {
         dot.style.backgroundColor = colorMap[category] || '#FFFFFF';
         overlay.appendChild(dot);
 
-        // Label: "Object Name (Waste Type)"
         const label = document.createElement('div');
         label.className = 'label';
         label.style.left = `${x}px`;
         label.style.top = `${y}px`;
         label.innerText = `${objectName} (${category})`;
         overlay.appendChild(label);
+    }
+
+    // ✅ Render disposal info in clean HTML format (supports <br>)
+    function showDisposalInfo(htmlContent) {
+        const disposalDiv = document.getElementById("disposalInfo");
+        if (disposalDiv) {
+            disposalDiv.innerHTML = htmlContent; // no escaping, supports <br>
+            disposalDiv.classList.remove("d-none");
+        }
     }
 
     // ✅ CLEANUP

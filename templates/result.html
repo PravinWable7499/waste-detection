@@ -23,8 +23,8 @@
         .disposal-guide {
             background-color: #f8f9fa;
             border-left: 3px solid #0d6efd;
-            padding: 10px;
-            margin-top: 8px;
+            padding: 12px;
+            margin-top: 12px;
             border-radius: 4px;
         }
         .station-card {
@@ -35,12 +35,11 @@
             margin-bottom: 8px;
             border-left: 3px solid #007bff;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s;
         }
         .station-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            background-color: #f0f8ff;
         }
         .station-name {
             font-weight: bold;
@@ -50,11 +49,6 @@
         .station-address {
             font-size: 0.85rem;
             color: #6c757d;
-        }
-        .distance-info {
-            font-size: 0.8rem;
-            color: #28a745;
-            font-weight: bold;
         }
         .location-status {
             font-size: 0.85rem;
@@ -68,10 +62,6 @@
             padding: 12px;
             margin: 10px 0;
         }
-        .location-instructions h6 {
-            margin-bottom: 8px;
-            color: #0c5460;
-        }
         .btn-location {
             background-color: #007bff;
             color: white;
@@ -84,14 +74,6 @@
         .btn-location:hover {
             background-color: #0056b3;
         }
-        .zone-header {
-            background-color: #f8f9fa;
-            padding: 8px;
-            margin: 10px 0 5px 0;
-            border-radius: 4px;
-            font-weight: bold;
-            color: #495057;
-        }
         .map-icon {
             font-size: 0.9rem;
             margin-right: 4px;
@@ -101,149 +83,121 @@
 </head>
 <body class="bg-light">
     <div class="container py-4">
-        <h1 class="text-center mb-4">✅ Waste Detection Results<br>कचरा ओळख परिणाम</h1>
+        <!-- LANGUAGE AUTO-APPLY SCRIPT -->
+        <script>
+            const lang = "{{ lang }}";
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('[data-en], [data-mr]').forEach(el => {
+                    const en = el.getAttribute('data-en');
+                    const mr = el.getAttribute('data-mr');
+                    if (en && mr) {
+                        el.textContent = lang === 'en' ? en : mr;
+                    }
+                });
+            });
+        </script>
 
-        <!-- <div class="card shadow mb-4">
-            <div class="card-body">
-                <h5 class="mb-3">📸 Original Image / मूळ प्रतिमा</h5>
-                <img src="/static/{{ original_image }}" alt="Original" class="img-fluid rounded shadow">
-            </div>
-        </div> -->
+        <h1 class="text-center mb-4">
+            <span data-en="✅ Waste Detection Results" data-mr="✅ कचरा ओळख परिणाम">✅ Waste Detection Results</span>
+        </h1>
 
         <div class="card shadow mb-4">
             <div class="card-body">
-                <h5 class="mb-3">🎯 Annotated Result(विश्लेषित निकाल)</h5>
+                <h5 class="mb-3" data-en="🎯 Annotated Result" data-mr="🎯 विश्लेषित निकाल">🎯 Annotated Result</h5>
                 <img src="/temp_image/{{ annotated_image_id }}" alt="Annotated" class="img-fluid rounded shadow">
             </div>
         </div>
 
         <div class="card shadow">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">📋 Classification Details</h5>
+                <h5 class="mb-0" data-en="📋 Classification Details" data-mr="📋 वर्गीकरण तपशील">📋 Classification Details</h5>
             </div>
             <div class="card-body">
                 {% for result in results %}
                 <div class="alert alert-light border-left-success p-3 mb-3 position-relative">
-                    <!-- Bin Icon -->
+                    <!-- ✅ ACCURATE DUSTBIN ICONS -->
                     <div class="position-absolute top-0 end-0 me-2 mt-2 text-center">
                         {% if result.category == "Wet Waste" %}
                             <img src="/static/green-bin.png" alt="Wet Waste" class="bin-icon">
-                            <div class="bin-label" style="color: #011501;">Wet Waste</div>
+                            <div class="bin-label" style="color: #011501;" data-en="Wet Waste" data-mr="ओला कचरा">ओला कचरा</div>
                         {% elif result.category == "Dry Waste" %}
                             <img src="/static/blue-bin.png" alt="Dry Waste" class="bin-icon">
-                            <div class="bin-label" style="color: #010113;">Dry Waste</div>
+                            <div class="bin-label" style="color: #010113;" data-en="Dry Waste" data-mr="सुका कचरा">सुका कचरा</div>
                         {% elif result.category == "Hazardous Waste" %}
                             <img src="/static/red-bin.png" alt="Hazardous Waste" class="bin-icon">
-                            <div class="bin-label" style="color: #160101;">Hazardous Waste</div>
+                            <div class="bin-label" style="color: #160101;" data-en="Hazardous Waste" data-mr="धोकादायक कचरा">धोकादायक कचरा</div>
                         {% elif result.category == "Electronic Waste" %}
                             <img src="/static/gray-bin.png" alt="E-Waste" class="bin-icon">
-                            <div class="bin-label" style="color: #130101;">E-Waste</div>
+                            <div class="bin-label" style="color: #130101;" data-en="E-Waste" data-mr="इ-कचरा">इ-कचरा</div>
                         {% elif result.category == "Construction Waste" %}
                             <img src="/static/orange-bin.png" alt="Construction Waste" class="bin-icon">
-                            <div class="bin-label" style="color: #140b01;">Construction Waste</div>
+                            <div class="bin-label" style="color: #140b01;" data-en="Construction Waste" data-mr="बांधकाम कचरा">बांधकाम कचरा</div>
                         {% elif result.category == "Biomedical Waste" %}
                             <img src="/static/purple-bin.png" alt="Biomedical Waste" class="bin-icon">
-                            <div class="bin-label" style="color: #800080;">Biomedical Waste</div>
+                            <div class="bin-label" style="color: #800080;" data-en="Biomedical Waste" data-mr="जैविक कचरा">जैविक कचरा</div>
                         {% else %}
                             <img src="/static/blue-bin.png" alt="Unknown" class="bin-icon">
-                            <div class="bin-label">Other</div>
+                            <div class="bin-label" data-en="Other" data-mr="इतर">इतर</div>
                         {% endif %}
                     </div>
 
                     <strong>{{ loop.index }}. {{ result.object }}</strong> ({{ result.category }})
                     <br>
-                    📐 Area: {{ result.area }} cm²
-                    {% if result.weight_info %}<br>{{ result.weight_info }}{% endif %}
+                    <small data-en="Area: {{ result.area_cm2 }} cm²" data-mr="क्षेत्रफळ: {{ result.area_cm2 }} सेमी²">
+                        क्षेत्रफळ: {{ result.area_cm2 }} सेमी²
+                    </small>
+                    <br>
+                    <small data-en="Tentative Weight: {{ result.tentative_weight_kg }} kg" data-mr="अंदाजे वजन: {{ result.tentative_weight_kg}} किलोग्राम">
+                        अंदाजे वजन: {{ result.weight_kg }} किलोग्राम
+                    </small>
 
-                    <!-- ✅ COLLAPSIBLE DISPOSAL BUTTON -->
+                    <!-- Disposal Guide Toggle -->
                     <div class="mt-2">
-                        <button class="btn btn-sm btn-outline-secondary" 
-                                type="button" 
-                                data-bs-toggle="collapse" 
+                        <button class="btn btn-sm btn-outline-secondary"
+                                type="button"
+                                data-bs-toggle="collapse"
                                 data-bs-target="#disposal-{{ loop.index }}">
-                            🧹 Show Disposal Guide
+                            <span data-en="🧹 Show Disposal Guide" data-mr="🧹 निकाल मार्गदर्शक दाखवा">🧹 Show Disposal Guide</span>
                         </button>
                     </div>
 
-                    <!-- ✅ COLLAPSIBLE DISPOSAL CONTENT -->
-                    <!-- <div class="collapse mt-2" id="disposal-{{ loop.index }}">
-                        <div class="disposal-guide">
-                            <strong>Standard Disposal:</strong><br>
-                            {{ result.disposal }}
-                            <br><br>
-                            <strong>Where to Throw:</strong><br>
-                            {% if result.category == "Wet Waste" %}
-                                🏠 Compost at home in a kitchen compost bin<br>
-                                🏘️ Or hand over to municipal wet waste collection
-                            {% elif result.category == "Dry Waste" %}
-                                ♻️ Place in blue dry waste bin<br>
-                                📦 Ensure clean & dry before recycling
-                            {% elif result.category == "Hazardous Waste" %}
-                                ⚠️ Do NOT throw in regular trash<br>
-                                🏢 Take to designated hazardous waste collection center
-                            {% elif result.category == "Electronic Waste" %}
-                                🔋 Return to e-waste recycling center<br>
-                                📱 Many electronics stores accept old devices
-                            {% elif result.category == "Construction Waste" %}
-                                🏗️ Contact licensed waste removal service<br>
-                                🚫 Never dump on roads or public land
-                            {% elif result.category == "Biomedical Waste" %}
-                                🩺 Hand over ONLY to medical waste handlers<br>
-                                🚫 Never mix with household waste
-                            {% else %}
-                                🗑️ Dispose in appropriate municipal bin
-                            {% endif %} -->
-
+                    <!-- ✅ CLEAN DISPOSAL INSTRUCTIONS (NO DUPLICATION) -->
                     <div class="collapse mt-2" id="disposal-{{ loop.index }}">
                         <div class="disposal-guide">
-                            <strong>Standard Disposal:</strong><br>
-                            {{ result.disposal }}
-                            <br><br>
-                            <strong>Where to Throw:</strong><br>
-                            {% if result.category == "Wet Waste" %}
-                                🏠 Compost at home in a kitchen compost bin<br>
-                                🚛 Or hand over to the vehicle of Kachragadi
-                            {% elif result.category == "Dry Waste" %}
-                                ♻️ Place in blue dry waste bin<br>
-                                📦 Ensure clean & dry before recycling<br>
-                                🚛 Hand over to the vehicle of Kachragadi
-                            {% elif result.category == "Hazardous Waste" %}
-                                ⚠️ Do NOT throw in regular trash<br>
-                                🏢 Take to designated hazardous waste collection center<br>
-                                📞 Contact municipal authorities for special collection
-                            {% elif result.category == "Electronic Waste" %}
-                                🔋 Return to e-waste recycling center<br>
-                                📱 Many electronics stores accept old devices<br>
-                                📞 Contact municipal authorities for e-waste collection
-                            {% elif result.category == "Construction Waste" %}
-                                🏗️ Contact licensed waste removal service<br>
-                                🚫 Never dump on roads or public land<br>
-                                📞 Call municipal helpline for construction waste pickup
-                            {% elif result.category == "Biomedical Waste" %}
-                                🩺 Hand over ONLY to medical waste handlers<br>
-                                🚫 Never mix with household waste<br>
-                                📞 Contact hospital or medical facility for proper disposal
-                            {% else %}
-                                🗑️ Dispose in appropriate municipal bin<br>
-                                🚛 Hand over to the vehicle of Kachragadi
-                            {% endif %}
+                            <strong><span data-en="Standard Disposal" data-mr="मानक निकाल">मानक निकाल</span>:</strong>
+                            <ol>
+                                {% for tip in result.disposal %}
+                                    <li>{{ tip }}</li>
+                                {% endfor %}
+                            </ol>
 
-                            <br><br>
+                            <!-- Location Finder -->
                             <div class="location-status" id="location-status-{{ loop.index }}">
-                                📍 Ready to find your nearest stations in Chhatrapati Sambhajinagar
+                                <span data-en="📍 Ready to find your nearest stations in Chhatrapati Sambhajinagar"
+                                      data-mr="📍 छत्रपती संभाजीनगरातील आपल्या जवळच्या स्टेशन्स शोधण्यासाठी तयार">
+                                    📍 Ready to find...
+                                </span>
                             </div>
-                            
                             <div class="location-instructions">
-                                <h6>📍 Find Nearest Waste Stations:</h6>
-                                <p class="mb-2">"Click below to find nearby waste collection centers.</p>
+                                <h6>
+                                    <span data-en="📍 Find Nearest Waste Stations" data-mr="📍 जवळची कचरा स्टेशन्स शोधा">📍 Find Nearest Waste Stations</span>:
+                                </h6>
+                                <p class="mb-2">
+                                    <span data-en="Click below to find nearby waste collection centers."
+                                          data-mr="जवळची कचरा संकलन केंद्रे शोधण्यासाठी खाली क्लिक करा.">
+                                        Click below...
+                                    </span>
+                                </p>
                                 <button class="btn-location" onclick="requestLocation({{ loop.index }}, '{{ result.category }}')">
-                                    🔍 Find My Nearest Stations
+                                    <span data-en="🔍 Find My Nearest Stations" data-mr="🔍 माझी जवळची स्टेशन्स शोधा">🔍 Find My Nearest Stations</span>
                                 </button>
                             </div>
-                            
                             <div id="stations-container-{{ loop.index }}">
                                 <div class="text-muted">
-                                    Stations in Chhatrapati Sambhajinagar will appear here.
+                                    <span data-en="Stations in Chhatrapati Sambhajinagar will appear here."
+                                          data-mr="छत्रपती संभाजीनगरातील स्टेशन्स इथे दिसतील.">
+                                        Stations in Chhatrapati Sambhajinagar will appear here.
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -252,14 +206,14 @@
                 {% endfor %}
             </div>
         </div>
-        
-        <div class="text-center mt-3 d-grid gap-2 col-10 mx-auto">
-            <a href="/" class="btn btn-primary">🔙 Analyze Another Image<br>(दुसरी प्रतिमा विश्लेषित करा)</a>
-            <a href="/temp_image/{{ annotated_image_id }}" download="waste_detection_result.jpg" class="btn btn-success">
-                💾 Download Annotated Image<br>(प्रतिमा डाउनलोड करा)
+
+        <div class="text-center mt-3">
+            <a href="/" class="btn btn-primary">
+                <span data-en="🔙 Analyze Another Image" data-mr="🔙 दुसरी प्रतिमा विश्लेषित करा">🔙 Analyze Another Image</span>
             </a>
         </div>
     </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/script.js"></script>
@@ -371,6 +325,7 @@
             statusEl.innerHTML = '📍 Detecting your location in Aurangabad...';
             button.disabled = true;
             button.innerHTML = '⏳ Finding...';
+            
 
             navigator.geolocation.getCurrentPosition(
                 function(position) {
@@ -415,9 +370,9 @@
                 },
                 function(error) {
                     console.error('Location error:', error);
-                    let errorMessage = '❌ Location access denied';
+                    let errorMessage = ' Location access denied';
                     if (error.code === 1) {
-                        errorMessage = '❌ Location access blocked';
+                        errorMessage = ' Location access blocked';
                         containerEl.innerHTML = `
                             <div class="text-danger">
                                 <strong>How to fix this:</strong><br>
@@ -427,10 +382,10 @@
                             </div>
                         `;
                     } else if (error.code === 2) {
-                        errorMessage = '❌ Location unavailable';
+                        errorMessage = ' Location unavailable';
                         containerEl.innerHTML = '<div class="text-warning">Please check your GPS settings and try again.</div>';
                     } else if (error.code === 3) {
-                        errorMessage = '❌ Request timed out';
+                        errorMessage = ' Request timed out';
                         containerEl.innerHTML = '<div class="text-warning">Please try again with better GPS signal.</div>';
                     }
                     
@@ -448,3 +403,5 @@
     </script>
 </body>
 </html>
+
+  
