@@ -173,6 +173,8 @@ def aggregate_objects(results, lang='en'):
 def classify_objects(image_path, lang='en'):
     try:
         img_width, img_height = get_image_dimensions(image_path)
+        print("Image dimensions:", img_width, img_height)
+
         if img_width is None:
             return []
 
@@ -181,17 +183,27 @@ def classify_objects(image_path, lang='en'):
         prompt = f"{DETECTION_PROMPT}\n\nImage dimensions: {img_width} × {img_height} pixels"
 
         response = model.generate_content([prompt, img_pil])
+        print("response ",response)
         text = response.text.strip()
+        print("text ",text)
 
         cleaned = re.sub(r'^```(?:json)?\s*\n', '', text, flags=re.IGNORECASE)
         cleaned = re.sub(r'\n\s*```\s*$', '', cleaned).strip()
-
+        parsed=[]
         try:
             parsed = json.loads(cleaned)
+            print("parsed ",parsed)
         except json.JSONDecodeError:
+            print("parsed ")
+
             return []
+        
+
+
 
         validated = []
+        print("parsed = ",parsed)
+
         for obj in parsed:
             category = obj.get("category", "").strip()
             bbox = obj.get("bbox", [])
@@ -215,8 +227,10 @@ def classify_objects(image_path, lang='en'):
                 "area_cm2": area_cm2,
                 "tentative_weight_kg": weight_kg
             })
+        dataAggregat=aggregate_objects(validated, lang=lang)
+        print("dataAggregat ",dataAggregat)
 
-        return aggregate_objects(validated, lang=lang)
+        return dataAggregat
 
     except Exception as e:
         print(f"Error in classify_objects: {e}")

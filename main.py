@@ -98,7 +98,7 @@ jsonDb = {}
 
 if os.path.exists(json_file_path):
     try:
-        with open(json_file_path, "r") as f:
+        with open(json_file_path, "r",encoding="utf-8") as f:
             jsonDb = json.load(f)
     except json.JSONDecodeError:
         jsonDb = {}
@@ -152,6 +152,7 @@ async def upload_file_web(
 ):
     try:
         is_json = isJson.lower() == "true"
+
         if not file.filename:
             raise ValueError("No file selected")
 
@@ -178,31 +179,23 @@ async def upload_file_web(
         TEMP_IMAGES[temp_id] = buffer.tobytes()
         TEMP_IMAGES_EXPIRY[temp_id] = datetime.now() + timedelta(minutes=30)
 
-        px_to_cm = 0.1
-       
         formatted_results = []
         for obj in results:
-            # Use area_cm2 already computed by predict.py (more accurate)
             area_cm2 = obj.get('area_cm2', 0.0)
-            weight_kg = obj.get('tentative_weight_kg', 0.0)  # Already computed in predict.py
-            
-            # Handle None values safely
-            if weight_kg is None:
-                weight_kg = 0.0
-            
+            weight_kg = obj.get('tentative_weight_kg', 0.0) or 0.0
+
             object_name = obj['object']
             if obj.get('count', 1) > 1:
                 object_name = f"Set of {object_name}s"
 
-            original_category = obj['category']  # English category for internal use
+            original_category = obj['category']
             localized_category = CATEGORY_NAMES.get(lang, CATEGORY_NAMES["en"]).get(original_category, original_category)
 
-            # Build entry for template (keep English keys for result.html)
             entry = {
                 'object': object_name,
                 'category': localized_category,
                 'area_cm2': round(area_cm2, 1),
-                'weight_kg': round(weight_kg, 2),  # Always a number (never None)
+                'weight_kg': round(weight_kg, 2),
                 'disposal': obj['disposal'],
                 'color': {
                     "Dry Waste": "#00FF00",
@@ -213,18 +206,10 @@ async def upload_file_web(
                     "Biomedical Waste": "#800080"
                 }.get(original_category, "#FFFFFF")
             }
-            
-            # Add to formatted results for template rendering (unchanged)
             formatted_results.append(entry)
-            
-            # === SAVE LOCALIZED ENTRY TO JSON HISTORY ===
 
             if lang == 'mr':
-                # Translate object name if possible
-                detected_object = obj['object']
-                marathi_object = translate_to_marathi(detected_object)
-
-
+                marathi_object = translate_to_marathi(obj['object'])
                 history_entry = {
                     'वस्तू': marathi_object,
                     'श्रेणी': localized_category,
@@ -235,27 +220,30 @@ async def upload_file_web(
                 }
             else:
                 history_entry = {
-                    'object': obj['object'],  # Keep English
+                    'object': obj['object'],
                     'category': localized_category,
                     'Area': f"{area_cm2:.1f} cm²",
                     'Tentative Weight': f"{weight_kg:.2f} kg",
                     'disposal': obj['disposal'],
                     'color': entry['color']
                 }
-            
-            # Save LOCALIZED entry to history database
+
             current_datetime = datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3]
             jsonDb[f"{current_datetime}_{len(jsonDb)}"] = [history_entry]
 
         with open(json_file_path, "w") as f:
             json.dump(jsonDb, f, indent=4)
 
+        # === JSON RESPONSE IF REQUESTED ==   
         if is_json:
             return JSONResponse({
+                "original_image": unique_filename,
                 "annotated_image_id": temp_id,
-                "results": formatted_results
+                "results": formatted_results,
+                "lang": lang
             })
 
+        # === HTML TEMPLATE RESPONSE ===
         return templates.TemplateResponse("result.html", {
             "request": request,
             "original_image": unique_filename,
