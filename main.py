@@ -3,19 +3,15 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-import json
-import os
-import shutil
-import uuid
-import tempfile
-import cv2
+import json, os, shutil, uuid, tempfile, cv2, asyncio, logging
 from datetime import datetime, timedelta
 from typing import Dict
-import asyncio
-import logging
-from predict import translate_to_marathi  # Import at top of main.py
+from concurrent.futures import ThreadPoolExecutor
+
+# === Import core logic ===
 from predict import classify_objects, estimate_weight
 
+# === Setup ===
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -33,47 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# Near the top of main.py, after imports
-# OBJECT_NAME_TRANSLATIONS_MR = {
-#     # Wet Waste
-#     "banana peel": "केळ्याचे साल",
-#     "apple peel": "सफरचंदाचे साल",
-#     "lime peel": "लिंबाचे साल",
-#     "lemon peel": "लिंबाचे साल",
-#     "orange peel": "संत्र्याचे साल",
-#     "mango peel": "आंब्याचे साल",
-#     "potato peel": "बटाट्याचे साल",
-#     "onion peel": "कांद्याचे साल",
-#     "garlic peel": "लसूणाचे साल",
-#     "vegetable scraps": "भाजीचे उरे",
-#     "fruit scraps": "फळांचे उरे",
-#     "leftover food": "उरलेले अन्न",
-#     "tea leaves": "चहाची पाने",
-#     "coffee grounds": "कॉफीचा गर",
-#     "egg shell": "अंड्याचे कवच",
-#     "lime pulp": "चूनाचा गर",
-
-#     # Dry Waste
-#     "plastic bottle": "प्लास्टिकची बाटली",
-#     "glass bottle": "काचेची बाटली",
-#     "aluminum can": "अॅल्युमिनियमची कॅन",
-#     "paper cup": "कागदी कप",
-#     "cardboard box": "कार्डबोर्डचा डबा",
-#     "newspaper": "वृत्तपत्र",
-#     "magazine": "मासिक",
-#     "plastic bag": "प्लास्टिकची पिशवी",
-
-#     # E-Waste
-#     "old phone": "जुना मोबाईल",
-#     "broken charger": "बिघाडलेला चार्जर",
-#     "dead battery": "संपलेली बॅटरी",
-#     "old laptop": "जुने लॅपटॉप",
-
-    # Add more as needed...
-# }
-
-# === Category names for localization ===
+# === Localization ===
 CATEGORY_NAMES = {
     "en": {
         "Dry Waste": "Dry Waste",
@@ -93,16 +49,7 @@ CATEGORY_NAMES = {
     }
 }
 
-# json_file_path = "data.json"
-# jsonDb = {}
-
-# if os.path.exists(json_file_path):
-#     try:
-#         with open(json_file_path, "r",encoding="utf-8") as f:
-#             jsonDb = json.load(f)
-#     except json.JSONDecodeError:
-#         jsonDb = {}
-
+# === Global state ===
 os.makedirs("uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -110,6 +57,11 @@ templates = Jinja2Templates(directory="templates")
 TEMP_IMAGES: Dict[str, bytes] = {}
 TEMP_IMAGES_EXPIRY: Dict[str, datetime] = {}
 
+# Use threadpool for heavy tasks (Gemini calls, OpenCV)
+executor = ThreadPoolExecutor(max_workers=4)
+
+
+# === Background Cleanup ===
 @app.on_event("startup")
 async def startup_event():
     logger.info("🚀 Waste Detection API started!")
@@ -135,13 +87,12 @@ async def cleanup_expired_images():
             TEMP_IMAGES.pop(k, None)
             TEMP_IMAGES_EXPIRY.pop(k, None)
 
+
+# === Routes ===
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# @app.get("/getHistory")
-# def get_all_data():
-#     return jsonDb
 
 @app.post("/upload")
 async def upload_file_web(
@@ -150,10 +101,8 @@ async def upload_file_web(
     lang: str = Form("en"),
     isJson: str = Form("false")
 ):
-    
     try:
         is_json = isJson.lower() == "true"
-
         if not file.filename:
             raise ValueError("No file selected")
 
@@ -163,12 +112,16 @@ async def upload_file_web(
 
         unique_filename = f"{uuid.uuid4()}.{ext}"
         file_path = os.path.join("uploads", unique_filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
 
-        results = classify_objects(file_path, lang=lang)
+        # Fast file write using async thread
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(executor, lambda: shutil.copyfileobj(file.file, open(file_path, "wb")))
 
-        img_cv = cv2.imread(file_path)
+        # Run classification asynchronously with retry
+        results = await run_classification_with_retry(file_path, lang)
+
+        # Handle OpenCV encoding in threadpool
+        img_cv = await loop.run_in_executor(executor, lambda: cv2.imread(file_path))
         if img_cv is None:
             raise ValueError("OpenCV could not load image")
 
@@ -180,19 +133,18 @@ async def upload_file_web(
         TEMP_IMAGES[temp_id] = buffer.tobytes()
         TEMP_IMAGES_EXPIRY[temp_id] = datetime.now() + timedelta(minutes=30)
 
+        # Format results
         formatted_results = []
-        for obj in results:
+        for obj in results or []:
             area_cm2 = obj.get('area_cm2', 0.0)
             weight_kg = obj.get('tentative_weight_kg', 0.0) or 0.0
-
             object_name = obj['object']
             if obj.get('count', 1) > 1:
                 object_name = f"Set of {object_name}s"
 
             original_category = obj['category']
             localized_category = CATEGORY_NAMES.get(lang, CATEGORY_NAMES["en"]).get(original_category, original_category)
-
-            entry = {
+            formatted_results.append({
                 'object': object_name,
                 'category': localized_category,
                 'area_cm2': round(area_cm2, 1),
@@ -206,39 +158,11 @@ async def upload_file_web(
                     "Construction Waste": "#00FFFF",
                     "Biomedical Waste": "#800080"
                 }.get(original_category, "#FFFFFF")
-            }
-            formatted_results.append(entry)
+            })
 
-            if lang == 'mr':
-                marathi_object = translate_to_marathi(obj['object'])
-                history_entry = {
-                    'वस्तू': marathi_object,
-                    'श्रेणी': localized_category,
-                    'क्षेत्रफळ': f"{area_cm2:.1f} सेमी²",
-                    'अंदाजे वजन': f"{weight_kg:.2f} किलोग्राम",
-                    'विल्हेवाट': obj['disposal'],
-                    'रंग': entry['color']
-                }
-            else:
-                history_entry = {
-                    'object': obj['object'],
-                    'category': localized_category,
-                    'Area': f"{area_cm2:.1f} cm²",
-                    'Tentative Weight': f"{weight_kg:.2f} kg",
-                    'disposal': obj['disposal'],
-                    'color': entry['color']
-                }
-
-            current_datetime = datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3]
-            # jsonDb[f"{current_datetime}_{len(jsonDb)}"] = [history_entry]
-
-        # with open(json_file_path, "w") as f:
-        #     json.dump(jsonDb, f, indent=4)
-
-        # === JSON RESPONSE IF REQUESTED ==   
+        # === JSON RESPONSE IF REQUESTED ===
         accept_header = request.headers.get("accept", "").lower()
         if is_json or "application/json" in accept_header:
-           
             return JSONResponse({
                 "original_image": unique_filename,
                 "annotated_image_id": temp_id,
@@ -264,6 +188,7 @@ async def upload_file_web(
             "error": f"Error: {str(e)}"
         })
 
+
 @app.post("/predict")
 async def predict_waste(file: UploadFile = File(...), lang: str = "en"):
     try:
@@ -274,7 +199,10 @@ async def predict_waste(file: UploadFile = File(...), lang: str = "en"):
             shutil.copyfileobj(file.file, tmp)
             temp_path = tmp.name
 
-        results = classify_objects(temp_path, lang=lang)
+        # Run classifier in background thread
+        results = await asyncio.get_event_loop().run_in_executor(
+            executor, lambda: classify_objects(temp_path, lang=lang)
+        )
 
         px_to_cm = 0.1
         for obj in results:
@@ -292,6 +220,7 @@ async def predict_waste(file: UploadFile = File(...), lang: str = "en"):
         logger.error(f"Prediction failed: {e}")
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
+
 @app.get("/temp_image/{image_id}")
 async def get_temp_image(image_id: str):
     if image_id not in TEMP_IMAGES:
@@ -302,6 +231,33 @@ async def get_temp_image(image_id: str):
         return JSONResponse({"error": "Image expired"}, status_code=410)
     return Response(content=TEMP_IMAGES[image_id], media_type="image/jpeg")
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "version": "1.0.0"}
+
+
+# === Helper: Retry Gemini classification ===
+async def run_classification_with_retry(file_path: str, lang: str, retries: int = 2, timeout: int = 60):
+    """
+    Run classify_objects() in a thread with retry and timeout.
+    Prevents null/empty outputs from Gemini due to timeouts or API stalls.
+    """
+    loop = asyncio.get_event_loop()
+    for attempt in range(retries + 1):
+        try:
+            result = await asyncio.wait_for(
+                loop.run_in_executor(executor, lambda: classify_objects(file_path, lang=lang)),
+                timeout=timeout
+            )
+            if result:  # non-empty result
+                return result
+        except asyncio.TimeoutError:
+            logger.warning(f"⏰ Timeout on attempt {attempt + 1} for {file_path}")
+        except Exception as e:
+            logger.error(f"Classification failed on attempt {attempt + 1}: {e}")
+
+        await asyncio.sleep(2)  # small backoff
+
+    logger.error("❌ All retries failed — returning empty result")
+    return []
