@@ -150,6 +150,7 @@ async def upload_file_web(
     lang: str = Form("en"),
     isJson: str = Form("false")
 ):
+    
     try:
         is_json = isJson.lower() == "true"
 
@@ -235,13 +236,24 @@ async def upload_file_web(
             json.dump(jsonDb, f, indent=4)
 
         # === JSON RESPONSE IF REQUESTED ==   
-        if is_json:
+        # if is_json:
+        #     return JSONResponse({
+        #         "original_image": unique_filename,
+        #         "annotated_image_id": temp_id,
+        #         "results": formatted_results,
+        #         "lang": lang
+        #     })
+        
+        # === JSON RESPONSE IF REQUESTED or client asks JSON ===
+        accept_header = request.headers.get("accept", "").lower()
+        if is_json or "application/json" in accept_header:
             return JSONResponse({
                 "original_image": unique_filename,
                 "annotated_image_id": temp_id,
                 "results": formatted_results,
                 "lang": lang
             })
+
 
         # === HTML TEMPLATE RESPONSE ===
         return templates.TemplateResponse("result.html", {
@@ -260,6 +272,164 @@ async def upload_file_web(
             "request": request,
             "error": f"Error: {str(e)}"
         })
+
+# @app.post("/upload")
+# async def upload_file_web(
+#     request: Request,
+#     file: UploadFile = File(...),
+#     lang: str = Form("en"),
+#     isJson: str = Form("false")
+# ):
+#     """
+#     Upload image API — handles classification, stores results,
+#     and returns JSON (for API) or HTML (for browser).
+#     """
+
+#     try:
+#         # --- Setup and Validation ---
+#         is_json = isJson.lower() == "true"
+#         accept_header = request.headers.get("accept", "").lower()
+
+#         if not file.filename:
+#             raise ValueError("No file selected")
+
+#         ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'jpg'
+#         if ext not in {"jpg", "jpeg", "png", "bmp"}:
+#             raise ValueError("Unsupported file type")
+
+#         # --- Save Uploaded File ---
+#         unique_filename = f"{uuid.uuid4()}.{ext}"
+#         file_path = os.path.join("uploads", unique_filename)
+#         with open(file_path, "wb") as buffer:
+#             shutil.copyfileobj(file.file, buffer)
+
+#         # --- Process Image and Classify ---
+#         results = classify_objects(file_path, lang=lang)
+
+#         img_cv = cv2.imread(file_path)
+#         if img_cv is None:
+#             raise ValueError("OpenCV could not load image")
+
+#         is_success, buffer = cv2.imencode(".jpg", img_cv)
+#         if not is_success:
+#             raise RuntimeError("Failed to encode image")
+
+#         temp_id = str(uuid.uuid4())
+#         TEMP_IMAGES[temp_id] = buffer.tobytes()
+#         TEMP_IMAGES_EXPIRY[temp_id] = datetime.now() + timedelta(minutes=30)
+
+#         # --- Format Results for JSON/HTML ---
+#         formatted_results = []
+#         for obj in results:
+#             area_cm2 = obj.get("area_cm2", 0.0)
+#             weight_kg = obj.get("tentative_weight_kg", 0.0) or 0.0
+#             object_name = obj["object"]
+#             if obj.get("count", 1) > 1:
+#                 object_name = f"Set of {object_name}s"
+
+#             original_category = obj["category"]
+#             localized_category = CATEGORY_NAMES.get(lang, CATEGORY_NAMES["en"]).get(
+#                 original_category, original_category
+#             )
+
+#             color_code = {
+#                 "Dry Waste": "#00FF00",
+#                 "Wet Waste": "#FFFF00",
+#                 "Hazardous Waste": "#FF0000",
+#                 "Electronic Waste": "#FF00FF",
+#                 "Construction Waste": "#00FFFF",
+#                 "Biomedical Waste": "#800080",
+#             }.get(original_category, "#FFFFFF")
+
+#             # --- Marathi vs English formatting ---
+#             if lang == "mr":
+#                 marathi_object = translate_to_marathi(object_name)
+#                 entry = {
+#                     "वस्तू": marathi_object,
+#                     "श्रेणी": localized_category,
+#                     "क्षेत्रफळ": f"{area_cm2:.1f} सेमी²",
+#                     "अंदाजे वजन": f"{weight_kg:.2f} किलोग्राम",
+#                     "विल्हेवाट": obj["disposal"],
+#                     "रंग": color_code,
+#                 }
+#             else:
+#                 entry = {
+#                     "object": object_name,
+#                     "category": localized_category,
+#                     "area_cm2": round(area_cm2, 1),
+#                     "weight_kg": round(weight_kg, 2),
+#                     "disposal": obj["disposal"],
+#                     "color": color_code,
+#                 }
+
+#             formatted_results.append(entry)
+
+#             # --- Save to JSON history ---
+#             current_datetime = datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3]
+#             if lang == "mr":
+#                 history_entry = {
+#                     "वस्तू": entry.get("वस्तू"),
+#                     "श्रेणी": entry.get("श्रेणी"),
+#                     "क्षेत्रफळ": entry.get("क्षेत्रफळ"),
+#                     "अंदाजे वजन": entry.get("अंदाजे वजन"),
+#                     "विल्हेवाट": entry.get("विल्हेवाट"),
+#                     "रंग": entry.get("रंग"),
+#                 }
+#             else:
+#                 history_entry = {
+#                     "object": entry.get("object"),
+#                     "category": entry.get("category"),
+#                     "Area": entry.get("area_cm2"),
+#                     "Tentative Weight": entry.get("weight_kg"),
+#                     "disposal": entry.get("disposal"),
+#                     "color": entry.get("color"),
+#                 }
+
+#             jsonDb[f"{current_datetime}_{len(jsonDb)}"] = [history_entry]
+
+#         with open(json_file_path, "w", encoding="utf-8") as f:
+#             json.dump(jsonDb, f, indent=4, ensure_ascii=False)
+
+#         # --- JSON Response (if requested or header demands JSON) ---
+#         if is_json or "application/json" in accept_header:
+#             if lang == "mr":
+#                 response_data = {
+#                     "original_image": unique_filename,
+#                     "annotated_image_id": temp_id,
+#                     "results": formatted_results,
+#                     "lang": lang,
+#                 }
+#             else:
+#                 response_data = {
+#                     "original_image": unique_filename,
+#                     "annotated_image_id": temp_id,
+#                     "results": formatted_results,
+#                     "lang": lang,
+#                 }
+
+#             return JSONResponse(response_data)
+
+#         # --- HTML Response (for browser) ---
+#         return templates.TemplateResponse(
+#             "result.html",
+#             {
+#                 "request": request,
+#                 "original_image": unique_filename,
+#                 "annotated_image_id": temp_id,
+#                 "results": results,
+#                 "lang": lang,
+#             },
+#         )
+
+#     except Exception as e:
+#         logger.error(f"Upload failed: {e}")
+#         if is_json:
+#             return JSONResponse({"error": str(e)}, status_code=400)
+
+#         return templates.TemplateResponse(
+#             "index.html", {"request": request, "error": f"Error: {str(e)}"}
+#         )
+
 
 @app.post("/predict")
 async def predict_waste(file: UploadFile = File(...), lang: str = "en"):
