@@ -116,27 +116,14 @@ Your task: Analyze the provided image and identify EVERY visible waste item with
 - Do NOT combine multiple objects into one.
 - Do NOT skip partially visible items.
 - Use integer pixel coordinates only (no decimals).
-
-Example Output:
+Example:
 [
   {
     "object": "banana peel",
     "category": "Wet Waste",
     "bbox": [100, 50, 300, 200]
-  },
-  {
-    "object": "plastic water bottle",
-    "category": "Dry Waste",
-    "bbox": [400, 150, 600, 350]
-  },
-  {
-    "object": "used syringe",
-    "category": "Biomedical Waste",
-    "bbox": [700, 80, 750, 180]
   }
 ]
-
-Now analyze this image carefully and return your detection results in JSON format.
 """
 
 def get_image_dimensions(image_path):
@@ -206,9 +193,8 @@ def classify_objects(image_path, lang='en'):
             return []
 
         img_pil = Image.open(image_path)
-        model = genai.GenerativeModel('gemini-2.5-flash-lite')
+        model = genai.GenerativeModel('gemini-2.0-flash-lite')
         prompt = f"{DETECTION_PROMPT}\n\nImage dimensions: {img_width} × {img_height} pixels"
-        
 
         response = model.generate_content([prompt, img_pil])
         print("response ",response)
@@ -282,35 +268,18 @@ def draw_annotations(image_path, results, output_path="annotated_result.jpg"):
     return output_path
 
 
-# def translate_to_marathi(text: str) -> str:
-#     """Translate English text to Marathi using Gemini"""
-#     try:
-#         # Updated to the correct available model
-#         model = genai.GenerativeModel('models/gemini-2.5-flash-lite')
-        
-#         # Slightly improved prompt to prevent empty responses
-#         prompt = f"""
-# You are a professional translator. Translate the following English text to Marathi clearly and naturally.
-# Return only the translated text — no explanations, no extra quotes.
-
-# Text: "{text}"
-# """
-#         response = model.generate_content(
-#             prompt,
-#             generation_config={"max_output_tokens": 40}
-#         )
-#         result = response.text.strip().strip('"').strip("'")
-#         return result if result else text
-#     except Exception as e:
-#         print(f"Translation error for '{text}': {str(e)}")
-#         return text  # Return original text if translation fails
-def translate_to_marathi(text):
+def translate_to_marathi(text: str) -> str:
+    """Translate English text to Marathi using Gemini"""
     try:
-        import google.generativeai as genai
-        model = genai.GenerativeModel("models/gemini-2.5-flash-lite")  # ✅ Updated model
-        prompt = f"Translate the following English word or phrase into Marathi: '{text}'. Return only the translated word."
-        response = model.generate_content(prompt)
-        return response.text.strip() if response and response.text else text
+        # Use the same model as detection
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"Translate to Marathi: '{text}'. Return ONLY the translation."
+        response = model.generate_content(
+            prompt,
+            generation_config={"max_output_tokens": 20}
+        )
+        result = response.text.strip().strip('".\'')
+        return result if result else text
     except Exception as e:
-        print(f"Translation error for '{text}': {e}")
-        return text
+        print(f"Translation error for '{text}': {str(e)}")
+        return text  # Keep original if fails
