@@ -193,7 +193,7 @@ def classify_objects(image_path, lang='en'):
             return []
 
         img_pil = Image.open(image_path)
-        model = genai.GenerativeModel('gemini-2.0-flash-lite')
+        model = genai.GenerativeModel('gemini-2.5-flash-lite')
         prompt = f"{DETECTION_PROMPT}\n\nImage dimensions: {img_width} × {img_height} pixels"
 
         response = model.generate_content([prompt, img_pil])

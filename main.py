@@ -93,15 +93,15 @@ CATEGORY_NAMES = {
     }
 }
 
-json_file_path = "data.json"
-jsonDb = {}
+# json_file_path = "data.json"
+# jsonDb = {}
 
-if os.path.exists(json_file_path):
-    try:
-        with open(json_file_path, "r",encoding="utf-8") as f:
-            jsonDb = json.load(f)
-    except json.JSONDecodeError:
-        jsonDb = {}
+# if os.path.exists(json_file_path):
+#     try:
+#         with open(json_file_path, "r",encoding="utf-8") as f:
+#             jsonDb = json.load(f)
+#     except json.JSONDecodeError:
+#         jsonDb = {}
 
 os.makedirs("uploads", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -139,9 +139,9 @@ async def cleanup_expired_images():
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/getHistory")
-def get_all_data():
-    return jsonDb
+# @app.get("/getHistory")
+# def get_all_data():
+#     return jsonDb
 
 @app.post("/upload")
 async def upload_file_web(
@@ -230,10 +230,10 @@ async def upload_file_web(
                 }
 
             current_datetime = datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3]
-            jsonDb[f"{current_datetime}_{len(jsonDb)}"] = [history_entry]
+            # jsonDb[f"{current_datetime}_{len(jsonDb)}"] = [history_entry]
 
-        with open(json_file_path, "w") as f:
-            json.dump(jsonDb, f, indent=4)
+        # with open(json_file_path, "w") as f:
+        #     json.dump(jsonDb, f, indent=4)
 
         # === JSON RESPONSE IF REQUESTED ==   
         accept_header = request.headers.get("accept", "").lower()
