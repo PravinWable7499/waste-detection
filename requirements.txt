@@ -7,3 +7,4 @@ pillow
 google-generativeai
 numpy
 torch
+indic_transliteration

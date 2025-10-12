@@ -14,7 +14,8 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 GOOGLE_API_KEY = "AIzaSyDTjKDxjZK02raiHrzYbAlGu1n1lM-ptag"
 genai.configure(api_key=GOOGLE_API_KEY)
 
-MODEL_ID = "gemini-2.0-flash"   # ⚡ Faster & more stable than 2.5-lite
+MODEL_ID = "gemini-2.5-flash-lite"   # ⚡ Faster & more stable than 2.5-lite
+
 
 # ========================
 # 🔹 WASTE CATEGORY DEFINITIONS
@@ -110,23 +111,90 @@ DISPOSAL_GUIDE = {
 # ========================
 # 🔹 PROMPT TEMPLATE
 # ========================
+# DETECTION_PROMPT = """
+# You are a professional AI waste detection expert.
+
+# Analyze the image carefully and identify all visible waste items.
+
+# If multiple objects of the same type (e.g. several banana peels or plastic bottles) are visible and close together,
+# group them into a single detection entry.
+
+# Each entry must include:
+# {
+#   "object": "descriptive item name (e.g. 'banana peel', 'set of banana peels', 'set of plastic bottles')",
+#   "category": "one of ['Dry Waste', 'Wet Waste', 'Hazardous Waste', 'Electronic Waste', 'Construction Waste', 'Biomedical Waste']",
+#   "bbox": [x1, y1, x2, y2]
+# }
+
+# ⚙️ STRICT RULES:
+# 1. Group identical items (e.g. 5 banana peels → "set of banana peels").
+# 2. Use a single bounding box that covers all grouped items.
+# 3. If only one item exists, use its singular name (e.g. "banana peel").
+# 4. Always include a valid bounding box in pixel coordinates [x1, y1, x2, y2].
+# 5. Use only integer coordinates (no decimals).
+# 6. Return VALID JSON ONLY — no markdown, no explanations, no extra text.
+
+# Example output:
+# [
+#   {
+#     "object": "set of banana peels",
+#     "category": "Wet Waste",
+#     "bbox": [120, 80, 400, 250]
+#   },
+#   {
+#     "object": "plastic bottle",
+#     "category": "Dry Waste",
+#     "bbox": [420, 100, 520, 250]
+#   }
+# ]
+# """
+
 DETECTION_PROMPT = """
-You are an expert in waste detection and classification.
+You are a precise AI waste-detection system.
 
-Analyze the given image and list EVERY visible waste item.
+Identify every visible waste item in the image and group identical nearby ones.
 
-Each object must include:
-- "object": name of item (e.g. "plastic bottle", "banana peel")
-- "category": one of ["Dry Waste", "Wet Waste", "Hazardous Waste", "Electronic Waste", "Construction Waste", "Biomedical Waste"]
-- "bbox": [x1, y1, x2, y2] pixel coordinates
+Return JSON only:
+[
+  {"object": "descriptive name", "category": "Dry Waste | Wet Waste | Hazardous Waste | Electronic Waste | Construction Waste | Biomedical Waste", "bbox": [x1, y1, x2, y2]}
+]
 
-Return VALID JSON ONLY.
-No extra commentary.
+Rules:
+- Group similar items (e.g. many banana peels → "set of banana peels").
+- Singular name if only one.
+- Bounding box integers only.
+- Detect small or partially visible waste.
+- Classify correctly by material:
+  * food, vegetables → Wet Waste
+  * paper, plastic, metal → Dry Waste
+  * electronics → Electronic Waste
+  * cement, bricks → Construction Waste
+  * masks, gloves, syringes → Biomedical Waste
+  * chemicals, glass, paint → Hazardous Waste
+Output valid JSON only.
+
+
+ Example output:
+[
+  {
+    "object": "set of banana peels",
+    "category": "Wet Waste",
+    "bbox": [120, 80, 400, 250]
+  },
+  {
+    "object": "plastic bottle",
+    "category": "Dry Waste",
+    "bbox": [420, 100, 520, 250]
+  }
+]
 """
+
 
 # ========================
 # 🔹 HELPER FUNCTIONS
 # ========================
+
+
 def get_image_dimensions(image_path):
     img = cv2.imread(image_path)
     if img is None:

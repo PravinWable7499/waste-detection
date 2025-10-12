@@ -260,4 +260,4 @@ async def run_classification_with_retry(file_path: str, lang: str, retries: int 
         await asyncio.sleep(2)  # small backoff
 
     logger.error("❌ All retries failed — returning empty result")
-    return []
+    return [] 
